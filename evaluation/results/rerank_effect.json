@@ -1,0 +1,23 @@
+{
+ "Google Lens order": {
+  "photos": 33,
+  "p@5": 0.6788,
+  "hit@1": 0.697,
+  "hit@5": 0.9697,
+  "accessory@5": 0.0606
+ },
+ "After visual re-ranking": {
+  "photos": 33,
+  "p@5": 0.6,
+  "hit@1": 0.6061,
+  "hit@5": 0.9697,
+  "accessory@5": 0.0848
+ },
+ "Final (prices checked)": {
+  "photos": 33,
+  "p@5": 0.6081,
+  "hit@1": 0.6061,
+  "hit@5": 0.9697,
+  "accessory@5": 0.0788
+ }
+}

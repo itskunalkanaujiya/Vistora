@@ -1,0 +1,355 @@
+{
+ "photos": 33,
+ "products": 11,
+ "overall": {
+  "p@5": 0.6081,
+  "p@10": 0.6626,
+  "hit@1": 0.6061,
+  "hit@5": 0.9697,
+  "hit@10": 1.0,
+  "recall@5": 0.2952,
+  "recall@10": 0.6022,
+  "brand@1": 0.8788,
+  "accessory_top10": 0.0545,
+  "price_rate_exact": 0.827,
+  "price_rate_all": 0.8411,
+  "major_marketplaces_exact": 2.8485
+ },
+ "by_product": {
+  "casio-f91w": {
+   "p@5": 0.5333,
+   "p@10": 0.5333,
+   "hit@1": 0.6667,
+   "hit@5": 1.0,
+   "hit@10": 1.0,
+   "recall@5": 0.2051,
+   "recall@10": 0.4103,
+   "brand@1": 1.0,
+   "accessory_top10": 0.1667,
+   "price_rate_exact": 0.9231,
+   "price_rate_all": 0.8623,
+   "major_marketplaces_exact": 3.3333
+  },
+  "converse-chuck-taylor": {
+   "p@5": 0.5333,
+   "p@10": 0.6,
+   "hit@1": 0.6667,
+   "hit@5": 1.0,
+   "hit@10": 1.0,
+   "recall@5": 0.2111,
+   "recall@10": 0.4611,
+   "brand@1": 1.0,
+   "accessory_top10": 0.0333,
+   "price_rate_exact": 0.9222,
+   "price_rate_all": 0.8833,
+   "major_marketplaces_exact": 3.0
+  },
+  "apple-airpods-max": {
+   "p@5": 0.4667,
+   "p@10": 0.6,
+   "hit@1": 0.3333,
+   "hit@5": 1.0,
+   "hit@10": 1.0,
+   "recall@5": 0.1939,
+   "recall@10": 0.5071,
+   "brand@1": 1.0,
+   "accessory_top10": 0.1333,
+   "price_rate_exact": 0.8838,
+   "price_rate_all": 0.8444,
+   "major_marketplaces_exact": 4.0
+  },
+  "ray-ban-wayfarer": {
+   "p@5": 0.6,
+   "p@10": 0.5333,
+   "hit@1": 0.6667,
+   "hit@5": 1.0,
+   "hit@10": 1.0,
+   "recall@5": 0.2639,
+   "recall@10": 0.4611,
+   "brand@1": 0.6667,
+   "accessory_top10": 0.0,
+   "price_rate_exact": 0.8806,
+   "price_rate_all": 0.9056,
+   "major_marketplaces_exact": 2.6667
+  },
+  "nike-air-force-1": {
+   "p@5": 0.8,
+   "p@10": 0.8667,
+   "hit@1": 1.0,
+   "hit@5": 1.0,
+   "hit@10": 1.0,
+   "recall@5": 0.2243,
+   "recall@10": 0.4903,
+   "brand@1": 1.0,
+   "accessory_top10": 0.0,
+   "price_rate_exact": 0.8469,
+   "price_rate_all": 0.8667,
+   "major_marketplaces_exact": 1.3333
+  },
+  "apple-watch": {
+   "p@5": 0.2667,
+   "p@10": 0.4222,
+   "hit@1": 0.0,
+   "hit@5": 0.6667,
+   "hit@10": 1.0,
+   "recall@5": 0.1889,
+   "recall@10": 0.8333,
+   "brand@1": 0.6667,
+   "accessory_top10": 0.1,
+   "price_rate_exact": 0.5444,
+   "price_rate_all": 0.6869,
+   "major_marketplaces_exact": 1.0
+  },
+  "amazon-kindle-paperwhite": {
+   "p@5": 0.5333,
+   "p@10": 0.5667,
+   "hit@1": 0.3333,
+   "hit@5": 1.0,
+   "hit@10": 1.0,
+   "recall@5": 0.4222,
+   "recall@10": 0.8667,
+   "brand@1": 0.3333,
+   "accessory_top10": 0.0667,
+   "price_rate_exact": 0.7889,
+   "price_rate_all": 0.914,
+   "major_marketplaces_exact": 2.6667
+  },
+  "jbl-flip": {
+   "p@5": 0.8,
+   "p@10": 0.9,
+   "hit@1": 0.6667,
+   "hit@5": 1.0,
+   "hit@10": 1.0,
+   "recall@5": 0.2162,
+   "recall@10": 0.4902,
+   "brand@1": 1.0,
+   "accessory_top10": 0.0,
+   "price_rate_exact": 0.9275,
+   "price_rate_all": 0.9167,
+   "major_marketplaces_exact": 4.0
+  },
+  "logitech-mx-master": {
+   "p@5": 0.8667,
+   "p@10": 0.9333,
+   "hit@1": 0.6667,
+   "hit@5": 1.0,
+   "hit@10": 1.0,
+   "recall@5": 0.2319,
+   "recall@10": 0.501,
+   "brand@1": 1.0,
+   "accessory_top10": 0.0667,
+   "price_rate_exact": 0.8239,
+   "price_rate_all": 0.8316,
+   "major_marketplaces_exact": 4.0
+  },
+  "adidas-stan-smith": {
+   "p@5": 0.8,
+   "p@10": 0.8333,
+   "hit@1": 0.6667,
+   "hit@5": 1.0,
+   "hit@10": 1.0,
+   "recall@5": 0.2897,
+   "recall@10": 0.6032,
+   "brand@1": 1.0,
+   "accessory_top10": 0.0333,
+   "price_rate_exact": 0.9554,
+   "price_rate_all": 0.8845,
+   "major_marketplaces_exact": 3.3333
+  },
+  "samsung-galaxy-buds": {
+   "p@5": 0.4889,
+   "p@10": 0.5,
+   "hit@1": 1.0,
+   "hit@5": 1.0,
+   "hit@10": 1.0,
+   "recall@5": 0.8,
+   "recall@10": 1.0,
+   "brand@1": 1.0,
+   "accessory_top10": 0.0,
+   "price_rate_exact": 0.6,
+   "price_rate_all": 0.6566,
+   "major_marketplaces_exact": 2.0
+  }
+ },
+ "by_condition": {
+  "clean backdrop": {
+   "photos": 12,
+   "p@5": 0.6667,
+   "p@10": 0.7,
+   "hit@1": 0.4167,
+   "hit@5": 1.0,
+   "hit@10": 1.0,
+   "recall@5": 0.258,
+   "recall@10": 0.5453,
+   "brand@1": 0.8333,
+   "accessory_top10": 0.0833,
+   "price_rate_exact": 0.8535,
+   "price_rate_all": 0.8325,
+   "major_marketplaces_exact": 3.0
+  },
+  "close-up": {
+   "photos": 3,
+   "p@5": 0.4889,
+   "p@10": 0.4889,
+   "hit@1": 1.0,
+   "hit@5": 1.0,
+   "hit@10": 1.0,
+   "recall@5": 0.4519,
+   "recall@10": 0.5705,
+   "brand@1": 1.0,
+   "accessory_top10": 0.0667,
+   "price_rate_exact": 0.7917,
+   "price_rate_all": 0.8371,
+   "major_marketplaces_exact": 3.0
+  },
+  "real-world": {
+   "photos": 18,
+   "p@5": 0.5889,
+   "p@10": 0.6667,
+   "hit@1": 0.6667,
+   "hit@5": 0.9444,
+   "hit@10": 1.0,
+   "recall@5": 0.2939,
+   "recall@10": 0.6454,
+   "brand@1": 0.8889,
+   "accessory_top10": 0.0333,
+   "price_rate_exact": 0.8151,
+   "price_rate_all": 0.8476,
+   "major_marketplaces_exact": 2.7222
+  }
+ },
+ "latency_all": {
+  "first results (Google Lens matches)": {
+   "n": 32,
+   "median": 6.58,
+   "p95": 24.61,
+   "mean": 8.36,
+   "min": 4.56,
+   "max": 25.73
+  },
+  "ranked results (visual re-rank)": {
+   "n": 32,
+   "median": 8.71,
+   "p95": 26.41,
+   "mean": 10.27,
+   "min": 6.17,
+   "max": 26.55
+  },
+  "finished (with seller-page prices)": {
+   "n": 32,
+   "median": 10.6,
+   "p95": 28.6,
+   "mean": 12.5,
+   "min": 7.56,
+   "max": 29.65
+  }
+ },
+ "latency_without_fallbacks": {
+  "first results (Google Lens matches)": {
+   "n": 29,
+   "median": 6.41,
+   "p95": 10.52,
+   "mean": 6.72,
+   "min": 4.56,
+   "max": 10.6
+  },
+  "ranked results (visual re-rank)": {
+   "n": 29,
+   "median": 8.23,
+   "p95": 11.56,
+   "mean": 8.63,
+   "min": 6.17,
+   "max": 11.63
+  },
+  "finished (with seller-page prices)": {
+   "n": 29,
+   "median": 10.55,
+   "p95": 13.63,
+   "mean": 10.84,
+   "min": 7.56,
+   "max": 14.49
+  }
+ },
+ "fallback_searches": 3,
+ "distinct_stores_with_exact_listings": 107,
+ "top_stores": [
+  [
+   "Amazon.in",
+   51
+  ],
+  [
+   "Flipkart",
+   41
+  ],
+  [
+   "Myntra",
+   28
+  ],
+  [
+   "IndiaMART",
+   23
+  ],
+  [
+   "Croma",
+   12
+  ],
+  [
+   "Ubuy",
+   11
+  ],
+  [
+   "Tata CliQ",
+   11
+  ],
+  [
+   "Desertcart INDIA",
+   10
+  ],
+  [
+   "Farfetch",
+   10
+  ],
+  [
+   "converse",
+   8
+  ],
+  [
+   "Reliance Digital",
+   7
+  ],
+  [
+   "casiostore.bhawar.com",
+   6
+  ]
+ ],
+ "major_marketplaces_with_exact_listings": [
+  [
+   "Amazon",
+   51
+  ],
+  [
+   "Flipkart",
+   46
+  ],
+  [
+   "Myntra",
+   28
+  ],
+  [
+   "Tata CLiQ",
+   15
+  ],
+  [
+   "Croma",
+   12
+  ],
+  [
+   "Nykaa",
+   7
+  ],
+  [
+   "Reliance Digital",
+   7
+  ]
+ ]
+}

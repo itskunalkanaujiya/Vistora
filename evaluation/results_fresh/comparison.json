@@ -1,0 +1,105 @@
+{
+ "Google Lens order": {
+  "photos": 15,
+  "p@5": 0.778,
+  "hit@1": 0.667,
+  "hit@5": 0.933,
+  "accessory_or_article@5": 0.013
+ },
+ "Old rule (visual similarity first), same listings": {
+  "photos": 15,
+  "p@5": 0.751,
+  "hit@1": 0.667,
+  "hit@5": 0.933,
+  "accessory_or_article@5": 0.053
+ },
+ "New code (title match first, accessories dropped)": {
+  "photos": 15,
+  "p@5": 0.818,
+  "hit@1": 0.867,
+  "hit@5": 0.867,
+  "accessory_or_article@5": 0.08
+ },
+ "by product": {
+  "bose-quietcomfort": {
+   "old": {
+    "photos": 3,
+    "p@5": 0.867,
+    "hit@1": 1.0,
+    "hit@5": 1.0,
+    "accessory_or_article@5": 0.067
+   },
+   "new": {
+    "photos": 3,
+    "p@5": 1.0,
+    "hit@1": 1.0,
+    "hit@5": 1.0,
+    "accessory_or_article@5": 0.0
+   }
+  },
+  "fitbit-charge": {
+   "old": {
+    "photos": 3,
+    "p@5": 0.489,
+    "hit@1": 0.0,
+    "hit@5": 0.667,
+    "accessory_or_article@5": 0.0
+   },
+   "new": {
+    "photos": 3,
+    "p@5": 0.489,
+    "hit@1": 0.667,
+    "hit@5": 0.667,
+    "accessory_or_article@5": 0.0
+   }
+  },
+  "gopro-hero": {
+   "old": {
+    "photos": 3,
+    "p@5": 0.8,
+    "hit@1": 1.0,
+    "hit@5": 1.0,
+    "accessory_or_article@5": 0.067
+   },
+   "new": {
+    "photos": 3,
+    "p@5": 0.933,
+    "hit@1": 1.0,
+    "hit@5": 1.0,
+    "accessory_or_article@5": 0.067
+   }
+  },
+  "nintendo-switch": {
+   "old": {
+    "photos": 3,
+    "p@5": 0.667,
+    "hit@1": 0.667,
+    "hit@5": 1.0,
+    "accessory_or_article@5": 0.133
+   },
+   "new": {
+    "photos": 3,
+    "p@5": 0.667,
+    "hit@1": 0.667,
+    "hit@5": 0.667,
+    "accessory_or_article@5": 0.333
+   }
+  },
+  "sony-dualsense": {
+   "old": {
+    "photos": 3,
+    "p@5": 0.933,
+    "hit@1": 0.667,
+    "hit@5": 1.0,
+    "accessory_or_article@5": 0.0
+   },
+   "new": {
+    "photos": 3,
+    "p@5": 1.0,
+    "hit@1": 1.0,
+    "hit@5": 1.0,
+    "accessory_or_article@5": 0.0
+   }
+  }
+ }
+}

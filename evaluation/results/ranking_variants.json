@@ -1,0 +1,38 @@
+{
+ "today: visual similarity first": {
+  "p@5": 0.608,
+  "hit@1": 0.606,
+  "hit@5": 0.97,
+  "accessory_or_article@5": 0.091
+ },
+ "title match first (exact score)": {
+  "p@5": 0.869,
+  "hit@1": 0.939,
+  "hit@5": 1.0,
+  "accessory_or_article@5": 0.048
+ },
+ "title match first (rounded to 2 decimals)": {
+  "p@5": 0.869,
+  "hit@1": 0.939,
+  "hit@5": 1.0,
+  "accessory_or_article@5": 0.048
+ },
+ "title match first (rounded to 1 decimal)": {
+  "p@5": 0.863,
+  "hit@1": 0.909,
+  "hit@5": 1.0,
+  "accessory_or_article@5": 0.048
+ },
+ "title first + drop accessories/news": {
+  "p@5": 0.899,
+  "hit@1": 1.0,
+  "hit@5": 1.0,
+  "accessory_or_article@5": 0.0
+ },
+ "title first (2 dec) + drop accessories/news": {
+  "p@5": 0.899,
+  "hit@1": 1.0,
+  "hit@5": 1.0,
+  "accessory_or_article@5": 0.0
+ }
+}

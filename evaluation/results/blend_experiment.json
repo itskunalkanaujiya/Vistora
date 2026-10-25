@@ -1,0 +1,62 @@
+{
+ "Google Lens order alone": {
+  "photos": 33,
+  "p@5": 0.6788,
+  "hit@1": 0.697,
+  "hit@5": 0.9697
+ },
+ "Vistora visual order alone": {
+  "photos": 33,
+  "p@5": 0.6081,
+  "hit@1": 0.6061,
+  "hit@5": 0.9697
+ },
+ "Title match first, then Lens order": {
+  "photos": 33,
+  "p@5": 0.8727,
+  "hit@1": 0.8788,
+  "hit@5": 1.0
+ },
+ "Title match first, then visual order": {
+  "photos": 33,
+  "p@5": 0.8788,
+  "hit@1": 0.9394,
+  "hit@5": 1.0
+ },
+ "Blend (k=3, visual weight 0.5)": {
+  "photos": 33,
+  "p@5": 0.6545,
+  "hit@1": 0.6061,
+  "hit@5": 1.0
+ },
+ "Blend (k=3, visual weight 1.0)": {
+  "photos": 33,
+  "p@5": 0.6424,
+  "hit@1": 0.6061,
+  "hit@5": 0.9697
+ },
+ "Blend (k=10, visual weight 0.5)": {
+  "photos": 33,
+  "p@5": 0.6667,
+  "hit@1": 0.5758,
+  "hit@5": 1.0
+ },
+ "Blend (k=10, visual weight 1.0)": {
+  "photos": 33,
+  "p@5": 0.6424,
+  "hit@1": 0.6061,
+  "hit@5": 1.0
+ },
+ "Blend (k=30, visual weight 0.5)": {
+  "photos": 33,
+  "p@5": 0.6606,
+  "hit@1": 0.5758,
+  "hit@5": 1.0
+ },
+ "Blend (k=30, visual weight 1.0)": {
+  "photos": 33,
+  "p@5": 0.6242,
+  "hit@1": 0.6061,
+  "hit@5": 0.9697
+ }
+}

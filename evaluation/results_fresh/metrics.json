@@ -1,0 +1,260 @@
+{
+ "photos": 15,
+ "products": 5,
+ "overall": {
+  "p@5": 0.8178,
+  "p@10": 0.7663,
+  "hit@1": 0.8667,
+  "hit@5": 0.8667,
+  "hit@10": 0.9333,
+  "recall@5": 0.5827,
+  "recall@10": 0.836,
+  "brand@1": 0.9333,
+  "accessory_top10": 0.054,
+  "price_rate_exact": 0.9092,
+  "price_rate_all": 0.9043,
+  "major_marketplaces_exact": 2.4
+ },
+ "by_product": {
+  "nintendo-switch": {
+   "p@5": 0.6667,
+   "p@10": 0.6917,
+   "hit@1": 0.6667,
+   "hit@5": 0.6667,
+   "hit@10": 1.0,
+   "recall@5": 0.3663,
+   "recall@10": 0.7231,
+   "brand@1": 1.0,
+   "accessory_top10": 0.1667,
+   "price_rate_exact": 0.8857,
+   "price_rate_all": 0.9345,
+   "major_marketplaces_exact": 1.3333
+  },
+  "gopro-hero": {
+   "p@5": 0.9333,
+   "p@10": 0.8413,
+   "hit@1": 1.0,
+   "hit@5": 1.0,
+   "hit@10": 1.0,
+   "recall@5": 0.6944,
+   "recall@10": 0.8333,
+   "brand@1": 1.0,
+   "accessory_top10": 0.0556,
+   "price_rate_exact": 0.8722,
+   "price_rate_all": 0.8881,
+   "major_marketplaces_exact": 2.6667
+  },
+  "sony-dualsense": {
+   "p@5": 1.0,
+   "p@10": 1.0,
+   "hit@1": 1.0,
+   "hit@5": 1.0,
+   "hit@10": 1.0,
+   "recall@5": 0.3542,
+   "recall@10": 0.7083,
+   "brand@1": 1.0,
+   "accessory_top10": 0.0,
+   "price_rate_exact": 0.9458,
+   "price_rate_all": 0.9458,
+   "major_marketplaces_exact": 4.6667
+  },
+  "bose-quietcomfort": {
+   "p@5": 1.0,
+   "p@10": 0.8857,
+   "hit@1": 1.0,
+   "hit@5": 1.0,
+   "hit@10": 1.0,
+   "recall@5": 0.6376,
+   "recall@10": 0.9697,
+   "brand@1": 1.0,
+   "accessory_top10": 0.0476,
+   "price_rate_exact": 0.8725,
+   "price_rate_all": 0.8615,
+   "major_marketplaces_exact": 2.3333
+  },
+  "fitbit-charge": {
+   "p@5": 0.4889,
+   "p@10": 0.4127,
+   "hit@1": 0.6667,
+   "hit@5": 0.6667,
+   "hit@10": 0.6667,
+   "recall@5": 1.0,
+   "recall@10": 1.0,
+   "brand@1": 0.6667,
+   "accessory_top10": 0.0,
+   "price_rate_exact": 1.0,
+   "price_rate_all": 0.8918,
+   "major_marketplaces_exact": 1.0
+  }
+ },
+ "by_condition": {
+  "clean backdrop": {
+   "photos": 5,
+   "p@5": 0.8,
+   "p@10": 0.7714,
+   "hit@1": 0.8,
+   "hit@5": 0.8,
+   "hit@10": 1.0,
+   "recall@5": 0.4042,
+   "recall@10": 0.705,
+   "brand@1": 1.0,
+   "accessory_top10": 0.1286,
+   "price_rate_exact": 0.8692,
+   "price_rate_all": 0.8883,
+   "major_marketplaces_exact": 3.0
+  },
+  "real-world": {
+   "photos": 10,
+   "p@5": 0.8267,
+   "p@10": 0.7637,
+   "hit@1": 0.9,
+   "hit@5": 0.9,
+   "hit@10": 0.9,
+   "recall@5": 0.6819,
+   "recall@10": 0.9087,
+   "brand@1": 0.9,
+   "accessory_top10": 0.0167,
+   "price_rate_exact": 0.9314,
+   "price_rate_all": 0.9124,
+   "major_marketplaces_exact": 2.1
+  }
+ },
+ "latency_all": {
+  "first results (Google Lens matches)": {
+   "n": 15,
+   "median": 3.75,
+   "p95": 8.7,
+   "mean": 4.25,
+   "min": 2.73,
+   "max": 8.7
+  },
+  "ranked results (visual re-rank)": {
+   "n": 15,
+   "median": 5.35,
+   "p95": 10.12,
+   "mean": 5.46,
+   "min": 3.57,
+   "max": 10.12
+  },
+  "finished (with seller-page prices)": {
+   "n": 15,
+   "median": 8.58,
+   "p95": 13.55,
+   "mean": 8.62,
+   "min": 5.38,
+   "max": 13.55
+  }
+ },
+ "latency_without_fallbacks": {
+  "first results (Google Lens matches)": {
+   "n": 15,
+   "median": 3.75,
+   "p95": 8.7,
+   "mean": 4.25,
+   "min": 2.73,
+   "max": 8.7
+  },
+  "ranked results (visual re-rank)": {
+   "n": 15,
+   "median": 5.35,
+   "p95": 10.12,
+   "mean": 5.46,
+   "min": 3.57,
+   "max": 10.12
+  },
+  "finished (with seller-page prices)": {
+   "n": 15,
+   "median": 8.58,
+   "p95": 13.55,
+   "mean": 8.62,
+   "min": 5.38,
+   "max": 13.55
+  }
+ },
+ "fallback_searches": 0,
+ "distinct_stores_with_exact_listings": 50,
+ "top_stores": [
+  [
+   "Flipkart",
+   22
+  ],
+  [
+   "Amazon.in",
+   19
+  ],
+  [
+   "Design Info",
+   7
+  ],
+  [
+   "Ubuy",
+   6
+  ],
+  [
+   "Croma",
+   6
+  ],
+  [
+   "Reliance Digital",
+   4
+  ],
+  [
+   "GameLoot",
+   3
+  ],
+  [
+   "GameBot",
+   3
+  ],
+  [
+   "IndiaMART",
+   3
+  ],
+  [
+   "OLX India",
+   3
+  ],
+  [
+   "Desertcart INDIA",
+   3
+  ],
+  [
+   "Myntra",
+   3
+  ]
+ ],
+ "major_marketplaces_with_exact_listings": [
+  [
+   "Flipkart",
+   22
+  ],
+  [
+   "Amazon",
+   19
+  ],
+  [
+   "Croma",
+   6
+  ],
+  [
+   "Reliance Digital",
+   4
+  ],
+  [
+   "Myntra",
+   3
+  ],
+  [
+   "JioMart",
+   1
+  ],
+  [
+   "Vijay Sales",
+   1
+  ],
+  [
+   "Nykaa",
+   1
+  ]
+ ]
+}

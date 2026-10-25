@@ -1,0 +1,488 @@
+[
+ {
+  "id": "casio-f91w/1",
+  "product": "casio-f91w",
+  "name": "Casio F-91W digital watch",
+  "brand": [
+   "casio"
+  ],
+  "model": [
+   "f-91w",
+   "f91w"
+  ],
+  "brand_needed": false,
+  "variant": "front view on a white background",
+  "file": "photos/casio-f91w/1.jpg"
+ },
+ {
+  "id": "casio-f91w/2",
+  "product": "casio-f91w",
+  "name": "Casio F-91W digital watch",
+  "brand": [
+   "casio"
+  ],
+  "model": [
+   "f-91w",
+   "f91w"
+  ],
+  "brand_needed": false,
+  "variant": "close-up of the face, strap cropped",
+  "file": "photos/casio-f91w/2.jpg"
+ },
+ {
+  "id": "casio-f91w/3",
+  "product": "casio-f91w",
+  "name": "Casio F-91W digital watch",
+  "brand": [
+   "casio"
+  ],
+  "model": [
+   "f-91w",
+   "f91w"
+  ],
+  "brand_needed": false,
+  "variant": "tilted, dark studio background",
+  "file": "photos/casio-f91w/3.jpg"
+ },
+ {
+  "id": "converse-chuck-taylor/1",
+  "product": "converse-chuck-taylor",
+  "name": "Converse Chuck Taylor All Star",
+  "brand": [
+   "converse"
+  ],
+  "model": [
+   "chuck taylor",
+   "all star",
+   "all-star"
+  ],
+  "brand_needed": true,
+  "variant": "side view of a cream high-top, grey backdrop",
+  "file": "photos/converse-chuck-taylor/1.jpg"
+ },
+ {
+  "id": "converse-chuck-taylor/2",
+  "product": "converse-chuck-taylor",
+  "name": "Converse Chuck Taylor All Star",
+  "brand": [
+   "converse"
+  ],
+  "model": [
+   "chuck taylor",
+   "all star",
+   "all-star"
+  ],
+  "brand_needed": true,
+  "variant": "top-down view of red high-tops on wood",
+  "file": "photos/converse-chuck-taylor/2.jpg"
+ },
+ {
+  "id": "converse-chuck-taylor/3",
+  "product": "converse-chuck-taylor",
+  "name": "Converse Chuck Taylor All Star",
+  "brand": [
+   "converse"
+  ],
+  "model": [
+   "chuck taylor",
+   "all star",
+   "all-star"
+  ],
+  "brand_needed": true,
+  "variant": "angled red low-tops on a shoebox",
+  "file": "photos/converse-chuck-taylor/3.jpg"
+ },
+ {
+  "id": "apple-airpods-max/1",
+  "product": "apple-airpods-max",
+  "name": "Apple AirPods Max",
+  "brand": [
+   "apple"
+  ],
+  "model": [
+   "airpods max"
+  ],
+  "brand_needed": false,
+  "variant": "front view on a white background",
+  "file": "photos/apple-airpods-max/1.jpg"
+ },
+ {
+  "id": "apple-airpods-max/2",
+  "product": "apple-airpods-max",
+  "name": "Apple AirPods Max",
+  "brand": [
+   "apple"
+  ],
+  "model": [
+   "airpods max"
+  ],
+  "brand_needed": false,
+  "variant": "flat lay on a bamboo mat",
+  "file": "photos/apple-airpods-max/2.jpg"
+ },
+ {
+  "id": "apple-airpods-max/3",
+  "product": "apple-airpods-max",
+  "name": "Apple AirPods Max",
+  "brand": [
+   "apple"
+  ],
+  "model": [
+   "airpods max"
+  ],
+  "brand_needed": false,
+  "variant": "on a stand against a textured wall",
+  "file": "photos/apple-airpods-max/3.jpg"
+ },
+ {
+  "id": "ray-ban-wayfarer/1",
+  "product": "ray-ban-wayfarer",
+  "name": "Ray-Ban Wayfarer sunglasses",
+  "brand": [
+   "ray-ban",
+   "ray ban",
+   "rayban"
+  ],
+  "model": [
+   "wayfarer"
+  ],
+  "brand_needed": true,
+  "variant": "angled studio shot on a lilac backdrop",
+  "file": "photos/ray-ban-wayfarer/1.jpg"
+ },
+ {
+  "id": "ray-ban-wayfarer/2",
+  "product": "ray-ban-wayfarer",
+  "name": "Ray-Ban Wayfarer sunglasses",
+  "brand": [
+   "ray-ban",
+   "ray ban",
+   "rayban"
+  ],
+  "model": [
+   "wayfarer"
+  ],
+  "brand_needed": true,
+  "variant": "another angle, graduated lenses",
+  "file": "photos/ray-ban-wayfarer/2.jpg"
+ },
+ {
+  "id": "ray-ban-wayfarer/3",
+  "product": "ray-ban-wayfarer",
+  "name": "Ray-Ban Wayfarer sunglasses",
+  "brand": [
+   "ray-ban",
+   "ray ban",
+   "rayban"
+  ],
+  "model": [
+   "wayfarer"
+  ],
+  "brand_needed": true,
+  "variant": "extreme close-up of the temple and logo",
+  "file": "photos/ray-ban-wayfarer/3.jpg"
+ },
+ {
+  "id": "nike-air-force-1/1",
+  "product": "nike-air-force-1",
+  "name": "Nike Air Force 1",
+  "brand": [
+   "nike"
+  ],
+  "model": [
+   "air force 1",
+   "air force one",
+   "air force"
+  ],
+  "brand_needed": false,
+  "variant": "pair seen from above, indoor, on the box",
+  "file": "photos/nike-air-force-1/1.jpg"
+ },
+ {
+  "id": "nike-air-force-1/2",
+  "product": "nike-air-force-1",
+  "name": "Nike Air Force 1",
+  "brand": [
+   "nike"
+  ],
+  "model": [
+   "air force 1",
+   "air force one",
+   "air force"
+  ],
+  "brand_needed": false,
+  "variant": "side view on the box, dark background",
+  "file": "photos/nike-air-force-1/2.jpg"
+ },
+ {
+  "id": "nike-air-force-1/3",
+  "product": "nike-air-force-1",
+  "name": "Nike Air Force 1",
+  "brand": [
+   "nike"
+  ],
+  "model": [
+   "air force 1",
+   "air force one",
+   "air force"
+  ],
+  "brand_needed": false,
+  "variant": "outdoors, angled pair on asphalt",
+  "file": "photos/nike-air-force-1/3.jpg"
+ },
+ {
+  "id": "apple-watch/1",
+  "product": "apple-watch",
+  "name": "Apple Watch",
+  "brand": [
+   "apple"
+  ],
+  "model": [
+   "apple watch"
+  ],
+  "brand_needed": false,
+  "variant": "lying flat beside its white box",
+  "file": "photos/apple-watch/1.jpg"
+ },
+ {
+  "id": "apple-watch/2",
+  "product": "apple-watch",
+  "name": "Apple Watch",
+  "brand": [
+   "apple"
+  ],
+  "model": [
+   "apple watch"
+  ],
+  "brand_needed": false,
+  "variant": "angled, yellow sport band, clean render-like shot",
+  "file": "photos/apple-watch/2.jpg"
+ },
+ {
+  "id": "apple-watch/3",
+  "product": "apple-watch",
+  "name": "Apple Watch",
+  "brand": [
+   "apple"
+  ],
+  "model": [
+   "apple watch"
+  ],
+  "brand_needed": false,
+  "variant": "worn on a wrist, dial facing the camera",
+  "file": "photos/apple-watch/3.jpg"
+ },
+ {
+  "id": "amazon-kindle-paperwhite/1",
+  "product": "amazon-kindle-paperwhite",
+  "name": "Amazon Kindle Paperwhite",
+  "brand": [
+   "kindle",
+   "amazon"
+  ],
+  "model": [
+   "paperwhite"
+  ],
+  "brand_needed": false,
+  "variant": "front view on a white background",
+  "file": "photos/amazon-kindle-paperwhite/1.jpg"
+ },
+ {
+  "id": "amazon-kindle-paperwhite/2",
+  "product": "amazon-kindle-paperwhite",
+  "name": "Amazon Kindle Paperwhite",
+  "brand": [
+   "kindle",
+   "amazon"
+  ],
+  "model": [
+   "paperwhite"
+  ],
+  "brand_needed": false,
+  "variant": "lying on pavement outdoors, angled",
+  "file": "photos/amazon-kindle-paperwhite/2.jpg"
+ },
+ {
+  "id": "amazon-kindle-paperwhite/3",
+  "product": "amazon-kindle-paperwhite",
+  "name": "Amazon Kindle Paperwhite",
+  "brand": [
+   "kindle",
+   "amazon"
+  ],
+  "model": [
+   "paperwhite"
+  ],
+  "brand_needed": false,
+  "variant": "propped up beside a coffee cup, cafe light",
+  "file": "photos/amazon-kindle-paperwhite/3.jpg"
+ },
+ {
+  "id": "jbl-flip/1",
+  "product": "jbl-flip",
+  "name": "JBL Flip Bluetooth speaker",
+  "brand": [
+   "jbl"
+  ],
+  "model": [
+   "flip"
+  ],
+  "brand_needed": true,
+  "variant": "black speaker end-on, desk, soft light",
+  "file": "photos/jbl-flip/1.jpg"
+ },
+ {
+  "id": "jbl-flip/2",
+  "product": "jbl-flip",
+  "name": "JBL Flip Bluetooth speaker",
+  "brand": [
+   "jbl"
+  ],
+  "model": [
+   "flip"
+  ],
+  "brand_needed": true,
+  "variant": "beige speaker lying flat on wood",
+  "file": "photos/jbl-flip/2.jpg"
+ },
+ {
+  "id": "jbl-flip/3",
+  "product": "jbl-flip",
+  "name": "JBL Flip Bluetooth speaker",
+  "brand": [
+   "jbl"
+  ],
+  "model": [
+   "flip"
+  ],
+  "brand_needed": true,
+  "variant": "blue speaker from above with its charger",
+  "file": "photos/jbl-flip/3.jpg"
+ },
+ {
+  "id": "logitech-mx-master/1",
+  "product": "logitech-mx-master",
+  "name": "Logitech MX Master mouse",
+  "brand": [
+   "logitech"
+  ],
+  "model": [
+   "mx master"
+  ],
+  "brand_needed": false,
+  "variant": "three-quarter view on a grey backdrop",
+  "file": "photos/logitech-mx-master/1.jpg"
+ },
+ {
+  "id": "logitech-mx-master/2",
+  "product": "logitech-mx-master",
+  "name": "Logitech MX Master mouse",
+  "brand": [
+   "logitech"
+  ],
+  "model": [
+   "mx master"
+  ],
+  "brand_needed": false,
+  "variant": "from above, scroll wheel visible",
+  "file": "photos/logitech-mx-master/2.jpg"
+ },
+ {
+  "id": "logitech-mx-master/3",
+  "product": "logitech-mx-master",
+  "name": "Logitech MX Master mouse",
+  "brand": [
+   "logitech"
+  ],
+  "model": [
+   "mx master"
+  ],
+  "brand_needed": false,
+  "variant": "from the front, USB-C port visible",
+  "file": "photos/logitech-mx-master/3.jpg"
+ },
+ {
+  "id": "adidas-stan-smith/1",
+  "product": "adidas-stan-smith",
+  "name": "Adidas Stan Smith",
+  "brand": [
+   "adidas"
+  ],
+  "model": [
+   "stan smith"
+  ],
+  "brand_needed": false,
+  "variant": "pair on a wooden floor, indoor",
+  "file": "photos/adidas-stan-smith/1.jpg"
+ },
+ {
+  "id": "adidas-stan-smith/2",
+  "product": "adidas-stan-smith",
+  "name": "Adidas Stan Smith",
+  "brand": [
+   "adidas"
+  ],
+  "model": [
+   "stan smith"
+  ],
+  "brand_needed": false,
+  "variant": "single shoe at an angle, indoor light",
+  "file": "photos/adidas-stan-smith/2.jpg"
+ },
+ {
+  "id": "adidas-stan-smith/3",
+  "product": "adidas-stan-smith",
+  "name": "Adidas Stan Smith",
+  "brand": [
+   "adidas"
+  ],
+  "model": [
+   "stan smith"
+  ],
+  "brand_needed": false,
+  "variant": "pair with black heel tab and price tag",
+  "file": "photos/adidas-stan-smith/3.jpg"
+ },
+ {
+  "id": "samsung-galaxy-buds/1",
+  "product": "samsung-galaxy-buds",
+  "name": "Samsung Galaxy Buds",
+  "brand": [
+   "samsung"
+  ],
+  "model": [
+   "galaxy buds"
+  ],
+  "brand_needed": false,
+  "variant": "open case on a wooden table",
+  "file": "photos/samsung-galaxy-buds/1.jpg"
+ },
+ {
+  "id": "samsung-galaxy-buds/2",
+  "product": "samsung-galaxy-buds",
+  "name": "Samsung Galaxy Buds",
+  "brand": [
+   "samsung"
+  ],
+  "model": [
+   "galaxy buds"
+  ],
+  "brand_needed": false,
+  "variant": "open case, close-up, blurred background",
+  "file": "photos/samsung-galaxy-buds/2.jpg"
+ },
+ {
+  "id": "samsung-galaxy-buds/3",
+  "product": "samsung-galaxy-buds",
+  "name": "Samsung Galaxy Buds",
+  "brand": [
+   "samsung"
+  ],
+  "model": [
+   "galaxy buds"
+  ],
+  "brand_needed": false,
+  "variant": "case open on top of a phone, dark background",
+  "file": "photos/samsung-galaxy-buds/3.jpg"
+ }
+]

@@ -1,0 +1,236 @@
+[
+ {
+  "id": "nintendo-switch/1",
+  "product": "nintendo-switch",
+  "name": "Nintendo Switch",
+  "brand": [
+   "nintendo"
+  ],
+  "model": [
+   "nintendo switch"
+  ],
+  "brand_needed": false,
+  "variant": "console in its dock with Joy-Con grips, white background",
+  "condition": "clean backdrop",
+  "file": "photos_fresh/nintendo-switch/1.jpg"
+ },
+ {
+  "id": "nintendo-switch/2",
+  "product": "nintendo-switch",
+  "name": "Nintendo Switch",
+  "brand": [
+   "nintendo"
+  ],
+  "model": [
+   "nintendo switch"
+  ],
+  "brand_needed": false,
+  "variant": "blue Switch Lite on a wooden shelf",
+  "condition": "real-world",
+  "file": "photos_fresh/nintendo-switch/2.jpg"
+ },
+ {
+  "id": "nintendo-switch/3",
+  "product": "nintendo-switch",
+  "name": "Nintendo Switch",
+  "brand": [
+   "nintendo"
+  ],
+  "model": [
+   "nintendo switch"
+  ],
+  "brand_needed": false,
+  "variant": "grey Switch Lite photographed on a table, glare on the screen",
+  "condition": "real-world",
+  "file": "photos_fresh/nintendo-switch/3.jpg"
+ },
+ {
+  "id": "gopro-hero/1",
+  "product": "gopro-hero",
+  "name": "GoPro Hero action camera",
+  "brand": [
+   "gopro"
+  ],
+  "model": [
+   "gopro"
+  ],
+  "brand_needed": false,
+  "variant": "camera in its frame, dark studio background",
+  "condition": "real-world",
+  "file": "photos_fresh/gopro-hero/1.jpg"
+ },
+ {
+  "id": "gopro-hero/2",
+  "product": "gopro-hero",
+  "name": "GoPro Hero action camera",
+  "brand": [
+   "gopro"
+  ],
+  "model": [
+   "gopro"
+  ],
+  "brand_needed": false,
+  "variant": "two cameras side by side on a wooden table",
+  "condition": "real-world",
+  "file": "photos_fresh/gopro-hero/2.jpg"
+ },
+ {
+  "id": "gopro-hero/3",
+  "product": "gopro-hero",
+  "name": "GoPro Hero action camera",
+  "brand": [
+   "gopro"
+  ],
+  "model": [
+   "gopro"
+  ],
+  "brand_needed": false,
+  "variant": "small cube camera on its mount",
+  "condition": "real-world",
+  "file": "photos_fresh/gopro-hero/3.jpg"
+ },
+ {
+  "id": "sony-dualsense/1",
+  "product": "sony-dualsense",
+  "name": "Sony DualSense controller",
+  "brand": [
+   "sony",
+   "playstation"
+  ],
+  "model": [
+   "dualsense"
+  ],
+  "brand_needed": false,
+  "variant": "pearl controller from above on white",
+  "condition": "clean backdrop",
+  "file": "photos_fresh/sony-dualsense/1.jpg"
+ },
+ {
+  "id": "sony-dualsense/2",
+  "product": "sony-dualsense",
+  "name": "Sony DualSense controller",
+  "brand": [
+   "sony",
+   "playstation"
+  ],
+  "model": [
+   "dualsense"
+  ],
+  "brand_needed": false,
+  "variant": "white controller from above on a dark rough surface",
+  "condition": "real-world",
+  "file": "photos_fresh/sony-dualsense/2.jpg"
+ },
+ {
+  "id": "sony-dualsense/3",
+  "product": "sony-dualsense",
+  "name": "Sony DualSense controller",
+  "brand": [
+   "sony",
+   "playstation"
+  ],
+  "model": [
+   "dualsense"
+  ],
+  "brand_needed": false,
+  "variant": "black controller angled on white",
+  "condition": "clean backdrop",
+  "file": "photos_fresh/sony-dualsense/3.jpg"
+ },
+ {
+  "id": "bose-quietcomfort/1",
+  "product": "bose-quietcomfort",
+  "name": "Bose QuietComfort headphones",
+  "brand": [
+   "bose"
+  ],
+  "model": [
+   "quietcomfort",
+   "quiet comfort"
+  ],
+  "brand_needed": false,
+  "variant": "angled on a white background",
+  "condition": "clean backdrop",
+  "file": "photos_fresh/bose-quietcomfort/1.jpg"
+ },
+ {
+  "id": "bose-quietcomfort/2",
+  "product": "bose-quietcomfort",
+  "name": "Bose QuietComfort headphones",
+  "brand": [
+   "bose"
+  ],
+  "model": [
+   "quietcomfort",
+   "quiet comfort"
+  ],
+  "brand_needed": false,
+  "variant": "headphones beside their carry case on white",
+  "condition": "clean backdrop",
+  "file": "photos_fresh/bose-quietcomfort/2.jpg"
+ },
+ {
+  "id": "bose-quietcomfort/3",
+  "product": "bose-quietcomfort",
+  "name": "Bose QuietComfort headphones",
+  "brand": [
+   "bose"
+  ],
+  "model": [
+   "quietcomfort",
+   "quiet comfort"
+  ],
+  "brand_needed": false,
+  "variant": "wireless pair hanging on a hook against a wooden door",
+  "condition": "real-world",
+  "file": "photos_fresh/bose-quietcomfort/3.jpg"
+ },
+ {
+  "id": "fitbit-charge/1",
+  "product": "fitbit-charge",
+  "name": "Fitbit Charge",
+  "brand": [
+   "fitbit"
+  ],
+  "model": [
+   "fitbit charge",
+   "charge hr"
+  ],
+  "brand_needed": false,
+  "variant": "worn on a wrist outdoors",
+  "condition": "real-world",
+  "file": "photos_fresh/fitbit-charge/1.jpg"
+ },
+ {
+  "id": "fitbit-charge/2",
+  "product": "fitbit-charge",
+  "name": "Fitbit Charge",
+  "brand": [
+   "fitbit"
+  ],
+  "model": [
+   "fitbit charge",
+   "charge hr"
+  ],
+  "brand_needed": false,
+  "variant": "unfolded on a table with the heart-rate light on",
+  "condition": "real-world",
+  "file": "photos_fresh/fitbit-charge/2.jpg"
+ },
+ {
+  "id": "fitbit-charge/3",
+  "product": "fitbit-charge",
+  "name": "Fitbit Charge",
+  "brand": [
+   "fitbit"
+  ],
+  "model": [
+   "fitbit charge",
+   "charge hr"
+  ],
+  "brand_needed": false,
+  "variant": "worn on a wrist, front view",
+  "condition": "real-world",
+  "file": "photos_fresh/fitbit-charge/3.jpg"
+ }
+]

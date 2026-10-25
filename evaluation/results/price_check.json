@@ -1,0 +1,17 @@
+{
+ "listings_checked_attempted": 60,
+ "page_opened": 55,
+ "price_read_and_compared": 41,
+ "could_not_check": 19,
+ "within_1_percent": 0.9512,
+ "within_5_percent": 0.9512,
+ "within_15_percent": 0.9756,
+ "median_absolute_difference": 0.0,
+ "shown_higher_than_page": 1,
+ "shown_lower_than_page": 1,
+ "by_reason": {
+  "page blocked or unreachable": 5,
+  "checked": 41,
+  "no readable price on the page": 14
+ }
+}

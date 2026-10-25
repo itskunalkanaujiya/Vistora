@@ -1,0 +1,4 @@
+candidates/
+runs/backend.log
+__pycache__/
+candidates_fresh/
