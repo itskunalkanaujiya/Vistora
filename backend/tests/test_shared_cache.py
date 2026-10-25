@@ -211,3 +211,102 @@ def test_warm_does_not_use_photo_credits_when_serper_is_not_set_up(redis, warm, 
     monkeypatch.delenv("SERPER_API_KEY")
 
     assert "Serper" in call_warm().json()["skipped"] and warm == []
+
+
+# --- the cache's health, shown on the status check ---------------------------------
+
+
+class Answer:
+    def __init__(self, status=200, body=None):
+        self.status_code = status
+        self.body = body if body is not None else {}
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise OSError(f"HTTP {self.status_code}")
+
+    def json(self):
+        return self.body
+
+
+class OneAnswer:
+    def __init__(self, answer=None, error=None):
+        self.answer, self.error = answer, error
+
+    def post(self, url, headers=None, json=None, timeout=None):
+        if self.error:
+            raise self.error
+        return self.answer
+
+
+def configured(monkeypatch, session):
+    monkeypatch.setenv("UPSTASH_REDIS_REST_URL", "https://secret-host.upstash.io")
+    monkeypatch.setenv("UPSTASH_REDIS_REST_TOKEN", "secret-token")
+    monkeypatch.setattr(shared_cache, "_session", session)
+
+
+def test_health_is_none_when_the_cache_is_not_set_up():
+    assert shared_cache.health() is None
+
+
+def test_health_reports_a_working_cache(monkeypatch):
+    configured(monkeypatch, OneAnswer(Answer(200, {"result": "PONG"})))
+    health = shared_cache.health()
+    assert health["ok"] is True and health["detail"] == "working" and isinstance(health["ms"], int)
+
+
+def test_health_reports_a_rejected_token_without_leaking_it(monkeypatch):
+    configured(monkeypatch, OneAnswer(Answer(401)))
+    health = shared_cache.health()
+    assert health["ok"] is False and "token was rejected" in health["detail"]
+    assert "secret" not in json.dumps(health)
+
+
+def test_health_reports_an_unreachable_cache_without_leaking_the_address(monkeypatch):
+    configured(monkeypatch, OneAnswer(error=OSError("could not reach https://secret-host.upstash.io")))
+    health = shared_cache.health()
+    assert health["ok"] is False and "not reachable" in health["detail"]
+    assert "secret" not in json.dumps(health)
+
+
+def test_health_ignores_the_pause_after_an_earlier_failure(monkeypatch):
+    configured(monkeypatch, OneAnswer(Answer(200, {"result": "PONG"})))
+    monkeypatch.setattr(shared_cache, "_down_until", shared_cache.time.monotonic() + 999)
+    assert shared_cache.health()["ok"] is True  # it asks again, so a fixed token shows up at once
+
+
+def credits_ok(monkeypatch):
+    monkeypatch.setattr(
+        main, "fetch_search_usage",
+        lambda: {"searches_left": 100, "searches_per_month": 250, "text": {"searches_left": 900}, "fast_photo": None},
+    )
+
+
+def test_status_is_ok_with_a_working_cache(monkeypatch):
+    credits_ok(monkeypatch)
+    configured(monkeypatch, OneAnswer(Answer(200, {"result": "PONG"})))
+
+    response = client.get("/api/v1/usage/status")
+
+    assert response.status_code == 200 and response.json()["shared_cache"]["ok"] is True
+
+
+def test_status_is_503_when_the_cache_rejects_its_token(monkeypatch):
+    credits_ok(monkeypatch)
+    configured(monkeypatch, OneAnswer(Answer(401)))
+
+    response = client.get("/api/v1/usage/status")
+
+    assert response.status_code == 503
+    body = response.json()
+    assert body["status"] == "low"
+    assert body["problems"] == ["Shared cache (Upstash): the token was rejected (HTTP 401)"]
+    assert "secret" not in response.text
+
+
+def test_status_leaves_the_cache_out_when_it_is_not_set_up(monkeypatch):
+    credits_ok(monkeypatch)
+
+    response = client.get("/api/v1/usage/status")
+
+    assert response.status_code == 200 and "shared_cache" not in response.json()

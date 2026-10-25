@@ -68,6 +68,36 @@ def command(*args):
         return None
 
 
+def health():
+    """
+    Whether the shared cache is working, for the status check: None when it is
+    not set up, else {"ok", "detail", "ms"}. It pings Redis directly (ignoring
+    the pause after a failure) and never includes the address or token.
+    """
+    config = _config()
+    if config is None:
+        return None
+
+    url, token = config
+    started = time.perf_counter()
+    try:
+        response = _session.post(
+            url, headers={"Authorization": f"Bearer {token}"}, json=["PING"], timeout=TIMEOUT_SECONDS
+        )
+    except Exception as exc:
+        return {"ok": False, "detail": f"not reachable ({type(exc).__name__})", "ms": None}
+
+    milliseconds = round((time.perf_counter() - started) * 1000)
+    if response.status_code in (401, 403):
+        return {"ok": False, "detail": f"the token was rejected (HTTP {response.status_code})", "ms": milliseconds}
+    try:
+        response.raise_for_status()
+        ok = response.json().get("result") == "PONG"
+    except Exception:
+        return {"ok": False, "detail": f"unexpected answer (HTTP {response.status_code})", "ms": milliseconds}
+    return {"ok": ok, "detail": "working" if ok else "unexpected answer", "ms": milliseconds}
+
+
 def get(key):
     """The JSON value stored under key, or None."""
     raw = command("GET", KEY_PREFIX + key)

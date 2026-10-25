@@ -383,15 +383,28 @@ def credit_status(usage):
     return {"status": worst, "providers": report, "problems": problems, "renews_on": usage.get("renews_on")}
 
 
+def with_cache_health(result, cache):
+    """Add the shared cache's state; a cache that is set up but not working is a problem."""
+    if cache is None:
+        return result
+    result["shared_cache"] = cache
+    if not cache["ok"]:
+        result["problems"].append(f"Shared cache (Upstash): {cache['detail']}")
+        if result["status"] == "ok":
+            result["status"] = "low"
+    return result
+
+
 @app.get("/api/v1/usage/status")
 async def usage_status():
     """
-    A health check for the search credits, for an uptime monitor (for example
-    UptimeRobot) to watch: 200 while every provider has plenty left, 503 once
-    any is low or empty, so the monitor emails the owner before searches stop.
+    A health check for the search credits and the shared cache, for an uptime
+    monitor (for example UptimeRobot) to watch: 200 while every provider has
+    plenty left and the cache works, 503 once any is low or empty or the cache
+    is not working, so the monitor emails the owner in time.
     """
     data = await search_usage()
-    result = credit_status(data)
+    result = with_cache_health(credit_status(data), await run_in_threadpool(shared_cache.health))
     if result["status"] != "ok":
         print(f"SEARCH CREDITS {result['status'].upper()}: {'; '.join(result['problems'])}")
         return JSONResponse(status_code=503, content=result)

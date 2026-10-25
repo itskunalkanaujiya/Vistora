@@ -277,6 +277,10 @@ has a limited number of searches. Three things protect the app:
   `LOW_CREDITS_SERPER`.
 - **Showing visitors.** The footer shows what is left on each provider.
 
+The same address also checks the shared cache below: if Upstash is set up but
+rejects the token or can't be reached, it answers `503` and names the problem,
+so a mistyped token doesn't go unnoticed.
+
 Top up or upgrade a plan on the provider's site before it reaches zero.
 
 ### Shared cache and warm searches (optional)
