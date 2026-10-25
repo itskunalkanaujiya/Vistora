@@ -8943,3 +8943,336 @@ body {
     display: none;
   }
 }
+
+/* =========================================================
+   Photo page redesign: two clear steps, option cards,
+   a roomy drop zone and one strong action
+   ========================================================= */
+
+.tool-page-inner:has(.photo-tool) {
+  max-width: 880px;
+}
+
+.photo-tool {
+  padding: clamp(18px, 3.2vw, 32px);
+  border-radius: var(--radius-xl);
+}
+
+/* Step headings */
+
+.photo-tool .purpose-picker legend,
+.photo-tool .step-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.photo-tool .purpose-picker legend {
+  float: left;
+  width: 100%;
+}
+
+.photo-tool .purpose-options {
+  clear: both;
+}
+
+.photo-tool .step-title {
+  margin-top: 26px;
+}
+
+.step-badge {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand-gradient);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* What to do with the photo: option cards */
+
+.photo-tool .purpose-picker {
+  margin: 0;
+}
+
+.photo-tool .purpose-options {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.photo-tool .purpose-option {
+  align-items: center;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  gap: 14px;
+  transition:
+    transform 0.18s var(--ease),
+    border-color 0.18s var(--ease),
+    box-shadow 0.18s var(--ease);
+}
+
+.photo-tool .purpose-option:hover {
+  border-color: var(--primary);
+  box-shadow: 0 12px 26px -16px var(--primary);
+  transform: translateY(-2px);
+}
+
+.photo-tool .purpose-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  place-items: center;
+  border-radius: 13px;
+  background: var(--primary-soft);
+  color: var(--primary-text);
+  transition: background-color 0.18s var(--ease), color 0.18s var(--ease);
+}
+
+.photo-tool .purpose-icon .icon {
+  margin: 0;
+}
+
+.photo-tool .purpose-text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 3px;
+}
+
+.photo-tool .purpose-text strong {
+  font-size: 14.5px;
+  font-weight: 650;
+}
+
+.photo-tool .purpose-text small {
+  color: var(--text-3);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.photo-tool .purpose-check {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand-gradient);
+  color: #ffffff;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
+}
+
+.photo-tool .purpose-check .icon {
+  margin: 0;
+}
+
+.photo-tool .purpose-option.is-active {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    var(--brand-gradient) border-box;
+  box-shadow: 0 14px 30px -18px var(--primary);
+  color: var(--text);
+}
+
+.photo-tool .purpose-option.is-active .purpose-icon {
+  background: var(--brand-gradient);
+  color: #ffffff;
+}
+
+.photo-tool .purpose-option.is-active .purpose-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Drop zone */
+
+.photo-tool .dropzone {
+  position: relative;
+  min-height: 300px;
+  gap: 0;
+  padding: 36px 24px;
+  border: 2px dashed var(--border-strong);
+  border-radius: 22px;
+  background:
+    radial-gradient(60% 80% at 50% 0%, var(--primary-soft) 0%, transparent 70%),
+    var(--surface-2);
+  transition:
+    transform 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    box-shadow 0.2s var(--ease);
+}
+
+.photo-tool .dropzone:hover,
+.photo-tool .dropzone.is-dragging {
+  border-color: var(--primary);
+  background:
+    radial-gradient(60% 80% at 50% 0%, var(--primary-soft) 0%, transparent 75%),
+    var(--surface-2);
+  box-shadow: 0 18px 40px -26px var(--primary);
+}
+
+.photo-tool .dropzone.is-dragging {
+  transform: scale(1.01);
+}
+
+.photo-tool .dropzone-icon {
+  width: 68px;
+  height: 68px;
+  margin-bottom: 18px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--brand-gradient);
+  box-shadow: 0 16px 32px -12px var(--primary);
+  color: #ffffff;
+  transition: transform 0.25s var(--ease);
+}
+
+.photo-tool .dropzone:hover .dropzone-icon {
+  transform: translateY(-4px) scale(1.05);
+}
+
+.photo-tool .dropzone-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 18px;
+}
+
+.photo-tool .dropzone-title strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.photo-tool .dropzone-subtitle {
+  margin: 6px 0 0;
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.dropzone-formats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dropzone-formats li {
+  padding: 4px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Tips */
+
+.photo-tips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.photo-tips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary-text);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* Preview of the chosen photo */
+
+.photo-tool .preview-frame {
+  border-radius: 20px;
+  box-shadow: var(--shadow-md);
+}
+
+/* The action */
+
+.photo-tool .search-button {
+  height: 56px;
+  margin-top: 22px;
+  border: 0;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.photo-tool .search-button:not(:disabled),
+.photo-tool .search-button.is-loading:disabled {
+  background: var(--brand-gradient);
+  box-shadow: 0 18px 34px -16px var(--primary);
+  color: #ffffff;
+}
+
+.photo-tool .search-button:not(:disabled):hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.photo-tool .search-button:disabled:not(.is-loading) {
+  border: 1.5px dashed var(--border-strong);
+  background: transparent;
+  color: var(--text-3);
+}
+
+/* Privacy note */
+
+.photo-tool .panel-footnote {
+  width: fit-content;
+  margin: 18px auto 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+@media (max-width: 560px) {
+  .photo-tool .purpose-options {
+    grid-template-columns: 1fr;
+  }
+
+  .photo-tool .dropzone {
+    min-height: 240px;
+    padding: 28px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-tool .purpose-option,
+  .photo-tool .dropzone,
+  .photo-tool .dropzone-icon {
+    transition: none;
+  }
+
+  .photo-tool .purpose-option:hover,
+  .photo-tool .dropzone:hover .dropzone-icon {
+    transform: none;
+  }
+}

@@ -193,7 +193,10 @@ export default function UploadPanel({
   return (
     <div className="panel search-panel photo-tool">
       <fieldset className="purpose-picker" disabled={working}>
-        <legend>What should we do with the photo?</legend>
+        <legend>
+          <span className="step-badge">1</span>
+          What should we do with the photo?
+        </legend>
         <div className="purpose-options">
           {PURPOSES.map((option) => (
             <label key={option.key} className={`purpose-option ${purpose === option.key ? "is-active" : ""}`}>
@@ -204,15 +207,25 @@ export default function UploadPanel({
                 checked={purpose === option.key}
                 onChange={() => onPurposeChange(option.key)}
               />
-              <Icon name={option.icon} size={17} />
-              <span>
+              <span className="purpose-icon">
+                <Icon name={option.icon} size={19} />
+              </span>
+              <span className="purpose-text">
                 <strong>{option.label}</strong>
                 <small>{option.hint}</small>
+              </span>
+              <span className="purpose-check" aria-hidden="true">
+                <Icon name="check" size={12} />
               </span>
             </label>
           ))}
         </div>
       </fieldset>
+
+      <h2 className="step-title">
+        <span className="step-badge">2</span>
+        {typedList ? "Type your list" : previewUrl ? "Your photo" : `Add ${chosen.drop}`}
+      </h2>
 
       {typedList ? (
         <form
@@ -342,8 +355,31 @@ export default function UploadPanel({
                   <strong>Tap to choose {chosen.drop}</strong>
                 </span>
               </p>
-              <p className="dropzone-subtitle">Click, drag and drop, or paste · JPG, PNG or WebP · up to 8 MB</p>
+              <p className="dropzone-subtitle">Click to browse, drag and drop, or paste with Ctrl+V</p>
+              <ul className="dropzone-formats" aria-label="Accepted files">
+                <li>JPG</li>
+                <li>PNG</li>
+                <li>WebP</li>
+                <li>up to 8 MB</li>
+              </ul>
             </div>
+          )}
+
+          {!previewUrl && purpose === "product" && (
+            <ul className="photo-tips" aria-label="Tips for better matches">
+              <li>
+                <Icon name="scan" size={14} />
+                One product in the frame
+              </li>
+              <li>
+                <Icon name="image" size={14} />
+                Plain background
+              </li>
+              <li>
+                <Icon name="sparkles" size={14} />
+                Good light, in focus
+              </li>
+            </ul>
           )}
 
           {!previewUrl && (
