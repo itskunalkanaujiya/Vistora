@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
+import Emoji3D from "./Emoji3D.jsx";
 import Icon from "./Icon.jsx";
+import { TOOLS } from "../lib/tools.js";
 
 const LIST_EXAMPLE = [
   "Diwali list:",
@@ -84,48 +86,78 @@ function SearchProgress({ stage, stageElapsed, isComplete, identifiedQuery }) {
 const PURPOSES = [
   {
     key: "product",
+    tool: "photo",
+    cardTitle: "Find a product",
+    cardLine: "Every store, cheapest first",
     icon: "search",
     label: "Find this product",
     hint: "Every store selling it, cheapest first",
     action: "Find matching products",
     busy: "Searching",
     drop: "a product photo or screenshot",
+    short: "Product",
+    gets: ["Every store selling it", "Cheapest price first", "Cheaper lookalikes"],
+    tips: ["One product in the frame", "Plain background", "Good light, in focus"],
   },
   {
     key: "outfit",
+    tool: "outfit",
+    cardTitle: "Find the outfit",
+    cardLine: "Shop what they're wearing",
     icon: "shirt",
     label: "Find the outfit",
     hint: "Shop each item the person is wearing",
     action: "Find the outfit",
     busy: "Finding the outfit…",
     drop: "a photo of someone's outfit",
+    short: "Outfit",
+    gets: ["Every item they wear", "Shoppable options each", "Price of the whole look"],
+    tips: ["Full-length photo", "One person in the frame", "Clear and well lit"],
   },
   {
     key: "rate",
+    tool: "rate",
+    cardTitle: "Rate my outfit",
+    cardLine: "A score, with reasons",
     icon: "star",
     label: "Rate my outfit",
     hint: "A style score and tips to improve it",
     action: "Rate my outfit",
     busy: "Rating your outfit…",
     drop: "a photo of your outfit, ideally full length",
+    short: "Rate outfit",
+    gets: ["A score out of 10", "The reason behind each score", "Items that improve the look"],
+    tips: ["Full length works best", "Good light, no filter", "One person in the frame"],
   },
   {
     key: "room",
+    tool: "room",
+    cardTitle: "Shop a room",
+    cardLine: "Furniture and decor",
     icon: "box",
     label: "Shop this room",
     hint: "Furniture, lighting and decor in the photo",
     action: "Shop this room",
     busy: "Shopping the room…",
     drop: "a photo of a room",
+    short: "Room",
+    gets: ["Furniture, lighting and decor", "Shoppable options each", "Price of the whole room"],
+    tips: ["A wide shot of the room", "Daylight if you can", "Tidy the corners you want"],
   },
   {
     key: "list",
+    tool: "list",
+    cardTitle: "Shop my list",
+    cardLine: "Handwritten or typed",
     icon: "bag",
     label: "Shop my list",
     hint: "A handwritten list or chat screenshot",
     action: "Shop my list",
     busy: "Reading your list…",
     drop: "a photo of your shopping list",
+    short: "List",
+    gets: ["Every line searched", "The best price picked", "A total for your cart"],
+    tips: ["Clear handwriting or a screenshot", "Quantities and budgets are read", "Hindi and Hinglish work"],
   },
 ];
 
@@ -155,6 +187,7 @@ export default function UploadPanel({
   onRun,
   isBusy = false,
   onTypedList,
+  onOpenTool,
 }) {
   const inputRef = useRef(null);
   const cameraRef = useRef(null);
@@ -193,13 +226,10 @@ export default function UploadPanel({
   return (
     <div className="panel search-panel photo-tool">
       <fieldset className="purpose-picker" disabled={working}>
-        <legend>
-          <span className="step-badge">1</span>
-          What should we do with the photo?
-        </legend>
-        <div className="purpose-options">
+        <legend>What should we do with the photo?</legend>
+        <div className="purpose-cards" role="presentation">
           {PURPOSES.map((option) => (
-            <label key={option.key} className={`purpose-option ${purpose === option.key ? "is-active" : ""}`}>
+            <label key={option.key} className={`purpose-card ${purpose === option.key ? "is-active" : ""}`}>
               <input
                 type="radio"
                 name="photo-purpose"
@@ -207,25 +237,30 @@ export default function UploadPanel({
                 checked={purpose === option.key}
                 onChange={() => onPurposeChange(option.key)}
               />
-              <span className="purpose-icon">
-                <Icon name={option.icon} size={19} />
+              <span className="purpose-art">
+                <Emoji3D name={TOOLS[option.tool].art} size={40} />
               </span>
-              <span className="purpose-text">
-                <strong>{option.label}</strong>
-                <small>{option.hint}</small>
-              </span>
-              <span className="purpose-check" aria-hidden="true">
+              <strong>{option.cardTitle}</strong>
+              <small>{option.cardLine}</small>
+              <span className="purpose-tick" aria-hidden="true">
                 <Icon name="check" size={12} />
               </span>
             </label>
           ))}
+          {onOpenTool && (
+            <button type="button" className="purpose-card purpose-link" onClick={() => onOpenTool("gift")}>
+              <span className="purpose-art">
+                <Emoji3D name={TOOLS.gift.art} size={40} />
+              </span>
+              <strong>Find a gift</strong>
+              <small>Ideas for anyone, any budget</small>
+              <span className="purpose-tick purpose-go" aria-hidden="true">
+                <Icon name="arrowRight" size={12} />
+              </span>
+            </button>
+          )}
         </div>
       </fieldset>
-
-      <h2 className="step-title">
-        <span className="step-badge">2</span>
-        {typedList ? "Type your list" : previewUrl ? "Your photo" : `Add ${chosen.drop}`}
-      </h2>
 
       {typedList ? (
         <form
@@ -365,21 +400,13 @@ export default function UploadPanel({
             </div>
           )}
 
-          {!previewUrl && purpose === "product" && (
-            <ul className="photo-tips" aria-label="Tips for better matches">
-              <li>
-                <Icon name="scan" size={14} />
-                One product in the frame
-              </li>
-              <li>
-                <Icon name="image" size={14} />
-                Plain background
-              </li>
-              <li>
-                <Icon name="sparkles" size={14} />
-                Good light, in focus
-              </li>
-            </ul>
+          {!previewUrl && (
+            <p className="photo-tips-line">
+              <Icon name="sparkles" size={13} />
+              <span>
+                <strong>Tips:</strong> {chosen.tips.join(" · ")}
+              </span>
+            </p>
           )}
 
           {!previewUrl && (

@@ -15,7 +15,16 @@ const MODEL_URLS = {
 };
 
 // Face mesh points: iris centres, with the eye corners as a fallback.
-const FACE = { irises: [468, 473], eyes: [[33, 133], [263, 362]], sides: [127, 356] };
+const FACE = {
+  irises: [468, 473],
+  eyes: [[33, 133], [263, 362]],
+  sides: [127, 356],
+  // The nose tip, and a point on each cheek where the light is read.
+  nose: 1,
+  cheeks: [205, 425],
+};
+// How far a turned head is allowed to change the frame's perspective.
+const MAX_YAW = 0.3;
 // Distance between lens centres relative to the distance between pupils
 // (frames are a little wider than the eyes), and how far the lens centre
 // sits below the pupil, as a share of the pupil distance.
@@ -201,6 +210,13 @@ export function placement(category, landmarks, width, height, mirror, { size, li
     const middle = average([left, right]);
     // Down the nose, perpendicular to the eyes; `lift` moves the frame up.
     const shift = (LENS_DROP - lift * 0.3) * pupils;
+
+    // How far the head is turned: the nose tip against the middle of the face.
+    const sides = FACE.sides.map(at);
+    const faceMiddle = average(sides);
+    const nose = landmarks.length > FACE.nose ? at(FACE.nose) : faceMiddle;
+    const yaw = faceWidth ? (nose.x - faceMiddle.x) / faceWidth : 0;
+    const cheeks = landmarks.length > FACE.cheeks[1] ? FACE.cheeks.map(at) : null;
     return {
       x: middle.x - Math.sin(angle) * shift,
       y: middle.y + Math.cos(angle) * shift,
@@ -208,6 +224,8 @@ export function placement(category, landmarks, width, height, mirror, { size, li
       width: pupils * LENS_SPREAD * size,
       faceWidth: faceWidth * size,
       angle,
+      yaw: Number.isFinite(yaw) ? Math.max(-MAX_YAW, Math.min(MAX_YAW, yaw)) : 0,
+      cheeks,
     };
   }
 
@@ -241,23 +259,145 @@ export function addShadow(context, productWidth) {
   context.shadowOffsetY = Math.max(2, productWidth * 0.012);
 }
 
+const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
+
+// Typical brightness of a well-lit face; photos darker or lighter than this
+// darken or lighten the frame to match.
+const REFERENCE_SKIN_LUMA = 150;
+
+function canvasOf(width, height) {
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.ceil(width));
+  canvas.height = Math.max(1, Math.ceil(height));
+  return canvas;
+}
+
+/** Average brightness of the photo around a point, or null if unreadable. */
+function patchLuma(context, centre, radius) {
+  try {
+    const x = Math.max(0, Math.round(centre.x - radius));
+    const y = Math.max(0, Math.round(centre.y - radius));
+    const size = Math.max(2, Math.round(radius * 2));
+    const { data } = context.getImageData(x, y, size, size);
+    let sum = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    }
+    return sum / (data.length / 4);
+  } catch {
+    return null;
+  }
+}
+
+/** Where the light comes from and how bright the face is, read from the cheeks. */
+function readLight(context, place, width) {
+  if (!place.cheeks) return { lean: 0, skin: null };
+  const radius = Math.max(3, width * 0.04);
+  const left = patchLuma(context, place.cheeks[0], radius);
+  const right = patchLuma(context, place.cheeks[1], radius);
+  if (left === null || right === null) return { lean: 0, skin: null };
+  return { lean: clamp((right - left) / (left + right + 1), -0.35, 0.35), skin: (left + right) / 2 };
+}
+
+/**
+ * The frame as a layer of its own, drawn in two halves either side of the
+ * bridge so a turned head shows the far lens narrower than the near one, with
+ * a soft sheen across the lenses and the temple ends fading as they go behind
+ * the ears. Returns { layer, anchorX, anchorY } (the lens midpoint in the layer).
+ */
+function frameLayer(overlay, centres, scale, yaw) {
+  const [leftX, leftY, rightX, rightY] = centres;
+  const bridge = ((leftX + rightX) / 2) * overlay.width;
+  // The nose pointing right (yaw > 0) means the right side is the far side.
+  const nearScale = 1 + yaw * 0.9;
+  const farScale = 1 - yaw * 0.9;
+  const leftWidth = bridge * scale * nearScale;
+  const rightWidth = (overlay.width - bridge) * scale * farScale;
+  const height = overlay.height * scale;
+
+  const layer = canvasOf(leftWidth + rightWidth, height);
+  const context = layer.getContext("2d");
+  context.imageSmoothingQuality = "high";
+  // A pixel of overlap hides the seam at the bridge.
+  context.drawImage(overlay, 0, 0, bridge + 1, overlay.height, 0, 0, leftWidth + 1, height);
+  context.drawImage(overlay, bridge, 0, overlay.width - bridge, overlay.height, leftWidth, 0, rightWidth, height);
+
+  // A soft sheen over the lenses and rims breaks up the flat, printed look.
+  context.globalCompositeOperation = "source-atop";
+  const sheen = context.createLinearGradient(0, 0, layer.width, layer.height);
+  sheen.addColorStop(0, "rgba(255, 255, 255, 0.2)");
+  sheen.addColorStop(0.45, "rgba(255, 255, 255, 0.04)");
+  sheen.addColorStop(1, "rgba(255, 255, 255, 0)");
+  context.fillStyle = sheen;
+  context.fillRect(0, 0, layer.width, layer.height);
+
+  // The ends of the temples tuck behind the ears.
+  context.globalCompositeOperation = "destination-in";
+  const ends = context.createLinearGradient(0, 0, layer.width, 0);
+  ends.addColorStop(0, "rgba(0, 0, 0, 0.3)");
+  ends.addColorStop(0.07, "rgba(0, 0, 0, 1)");
+  ends.addColorStop(0.93, "rgba(0, 0, 0, 1)");
+  ends.addColorStop(1, "rgba(0, 0, 0, 0.3)");
+  context.fillStyle = ends;
+  context.fillRect(0, 0, layer.width, layer.height);
+
+  return { layer, anchorX: leftWidth, anchorY: ((leftY + rightY) / 2) * overlay.height * scale };
+}
+
+/** A dark copy of a layer's shape, for the shadow the frame casts on the face. */
+function shadowOf(layer) {
+  const shadow = canvasOf(layer.width, layer.height);
+  const context = shadow.getContext("2d");
+  context.drawImage(layer, 0, 0);
+  context.globalCompositeOperation = "source-in";
+  context.fillStyle = "rgb(28, 16, 12)";
+  context.fillRect(0, 0, shadow.width, shadow.height);
+  return shadow;
+}
+
+function drawGlasses(context, overlay, centres, place) {
+  const [leftX, , rightX] = centres;
+  const scale = frameScale(
+    place.width / ((rightX - leftX) * overlay.width),
+    place.faceWidth ? (place.faceWidth * FACE_FILL) / overlay.width : null
+  );
+  const width = overlay.width * scale;
+  const { layer, anchorX, anchorY } = frameLayer(overlay, centres, scale, place.yaw || 0);
+  const { lean, skin } = readLight(context, place, width);
+  const hasFilter = "filter" in context;
+
+  context.save();
+  context.translate(place.x, place.y);
+  context.rotate(place.angle);
+
+  if (hasFilter) {
+    const shadow = shadowOf(layer);
+    // The light's side moves the shadow to the other side of the frame.
+    const dx = -lean * width * 0.18;
+    // A wide, soft shadow as the frame stands off the face, and a tight one
+    // where the rims and nose pads touch the skin.
+    context.globalAlpha = 0.3;
+    context.filter = `blur(${Math.max(2, width * 0.03)}px)`;
+    context.drawImage(shadow, -anchorX + dx, -anchorY + width * 0.03);
+    context.globalAlpha = 0.28;
+    context.filter = `blur(${Math.max(1, width * 0.008)}px)`;
+    context.drawImage(shadow, -anchorX + dx * 0.3, -anchorY + width * 0.009);
+    context.globalAlpha = 1;
+    // Match the photo's exposure.
+    const exposure = skin === null ? 1 : clamp(Math.sqrt(skin / REFERENCE_SKIN_LUMA), 0.78, 1.08);
+    context.filter = `brightness(${(exposure * 0.94).toFixed(3)}) contrast(1.14) saturate(1.12)`;
+  } else {
+    addShadow(context, width);
+  }
+
+  context.drawImage(layer, -anchorX, -anchorY);
+  context.restore();
+}
+
 /** Draw the product photo ({ image, centres }) at a placement. */
 export function drawProduct(context, { image: overlay, centres }, category, place) {
   if (category === "glasses" && centres) {
-    // Put the midpoint between the lens centres on the placement point.
-    const [leftX, leftY, rightX, rightY] = centres;
-    const scale = frameScale(
-      place.width / ((rightX - leftX) * overlay.width),
-      place.faceWidth ? (place.faceWidth * FACE_FILL) / overlay.width : null
-    );
-    const anchorX = ((leftX + rightX) / 2) * overlay.width * scale;
-    const anchorY = ((leftY + rightY) / 2) * overlay.height * scale;
-    context.save();
-    addShadow(context, overlay.width * scale);
-    context.translate(place.x, place.y);
-    context.rotate(place.angle);
-    context.drawImage(overlay, -anchorX, -anchorY, overlay.width * scale, overlay.height * scale);
-    context.restore();
+    drawGlasses(context, overlay, centres, place);
     return;
   }
 

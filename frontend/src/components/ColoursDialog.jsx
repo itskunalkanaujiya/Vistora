@@ -17,6 +17,52 @@ function Swatches({ colours, muted = false }) {
   );
 }
 
+/** Each colour with the reason it was picked; palettes saved earlier have no reasons. */
+function ColourList({ colours, muted = false }) {
+  if (!colours.some((colour) => colour.reason)) return <Swatches colours={colours} muted={muted} />;
+
+  return (
+    <ul className={`colour-reasons ${muted ? "is-muted" : ""}`}>
+      {colours.map((colour) => (
+        <li key={colour.name}>
+          <span className="swatch" style={{ background: colour.hex }} aria-hidden="true" />
+          <span>
+            <strong>{colour.name}</strong>
+            {colour.reason && <small>{colour.reason}</small>}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+const CONFIDENCE_NOTE = {
+  low: "Low confidence",
+  medium: "Medium confidence",
+};
+
+/** What the model saw in the selfie, and how sure it is of each reading. */
+function Observations({ observations }) {
+  return (
+    <ul className="colours-observed">
+      {observations.map((item) => (
+        <li key={item.area}>
+          <div>
+            <strong>{item.label}</strong>
+            <span>{item.finding}</span>
+            {item.confidence !== "high" && (
+              <em title="The photo shows this only partly">
+                {item.confidence === "low" ? "Hard to see" : "Partly clear"}
+              </em>
+            )}
+          </div>
+          {item.evidence && item.confidence !== "low" && <small>{item.evidence}</small>}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /**
  * "Colours that suit you": take or upload a selfie, see the palette, and
  * save it so results show "Suits you" on matching colours.
@@ -104,13 +150,41 @@ export default function ColoursDialog({ palette, onSave, onClose }) {
                   <strong>{result.season || "Your palette"}</strong>
                   {result.undertone && <span className="pill pill-outline">{result.undertone} undertone</span>}
                 </p>
-                {result.summary && <p className="colours-summary">{result.summary}</p>}
+                <ul className="palette-strip" aria-label="Your best colours at a glance">
+                  {result.best.map((colour) => (
+                    <li key={colour.name} style={{ background: colour.hex }} title={colour.name} />
+                  ))}
+                </ul>
+                {CONFIDENCE_NOTE[result.confidence] && (
+                  <p className="colours-caution" role="note">
+                    <Icon name="alert" size={15} />
+                    <span>
+                      <strong>{CONFIDENCE_NOTE[result.confidence]}.</strong>{" "}
+                      {result.photo_issues?.length > 0
+                        ? `The photo has ${result.photo_issues.join(", ")}, which can change how your colours read.`
+                        : "Some of your features were hard to read in this photo."}{" "}
+                      For a sharper result, try a selfie facing a window in daylight, with no filter.
+                    </span>
+                  </p>
+                )}
+                {result.summary && (
+                  <>
+                    <h3>Why this palette</h3>
+                    <p className="colours-summary">{result.summary}</p>
+                  </>
+                )}
+                {result.observations?.length > 0 && (
+                  <>
+                    <h3>What we saw</h3>
+                    <Observations observations={result.observations} />
+                  </>
+                )}
                 <h3>Your best colours</h3>
-                <Swatches colours={result.best} />
+                <ColourList colours={result.best} />
                 {result.avoid?.length > 0 && (
                   <>
                     <h3>Less flattering</h3>
-                    <Swatches colours={result.avoid} muted />
+                    <ColourList colours={result.avoid} muted />
                   </>
                 )}
               </>

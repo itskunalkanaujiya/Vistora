@@ -151,75 +151,174 @@ function OutfitPhoto({ photoUrl, alt, items, activeId, onActivate, scanning }) {
 
 const SCORE_RING_RADIUS = 34;
 const SCORE_AREAS = [
-  ["colours", "Colours"],
-  ["fit", "Fit"],
-  ["styling", "Styling"],
-  ["occasion", "Occasion"],
+  ["colours", "Colours", "palette", "How well the colours and patterns work together"],
+  ["fit", "Fit", "layers", "How the garments sit and balance"],
+  ["styling", "Styling", "sparkles", "Footwear, accessories and finishing"],
+  ["occasion", "Occasion", "clock", "Whether every piece suits the same setting"],
 ];
 
-/** Rate my outfit: the score as a ring, the verdict and what works. */
+/** How good a score is, in words, and the colour family that goes with it. */
+function scoreTone(score) {
+  if (score >= 8.5) return { key: "great", label: "Excellent look" };
+  if (score >= 7.5) return { key: "great", label: "Strong look" };
+  if (score >= 6.5) return { key: "good", label: "Good look" };
+  if (score >= 5) return { key: "fair", label: "Needs a few changes" };
+  return { key: "low", label: "Needs a rethink" };
+}
+
+/** Rate my outfit: the score, why, and the evidence behind each area. */
 function RatingSummary({ rating }) {
   const circumference = 2 * Math.PI * SCORE_RING_RADIUS;
   const share = Math.min(1, Math.max(0, rating.score / 10));
-  const tone = rating.score >= 8 ? "great" : rating.score >= 6 ? "good" : "fair";
+  const tone = scoreTone(rating.score);
+  const hasDetails = rating.details && Object.keys(rating.details).length > 0;
+  const areas = SCORE_AREAS.filter(([key]) => rating.scores?.[key] != null);
 
   return (
-    <div className={`rating rating-${tone}`}>
-      <div className="rating-score" role="img" aria-label={`Style score ${rating.score} out of 10`}>
-        <svg viewBox="0 0 80 80" aria-hidden="true">
-          <circle className="rating-track" cx="40" cy="40" r={SCORE_RING_RADIUS} />
-          <circle
-            className="rating-fill"
-            cx="40"
-            cy="40"
-            r={SCORE_RING_RADIUS}
-            strokeDasharray={circumference}
-            strokeDashoffset={circumference * (1 - share)}
-          />
-        </svg>
-        <span>
-          <strong>{rating.score.toFixed(1)}</strong>
-          <small>/10</small>
-        </span>
-      </div>
-      <div className="rating-text">
-        <p className="rating-verdict">{rating.verdict}</p>
-        {rating.occasion && (
-          <span className="pill pill-outline">
-            <Icon name="sparkles" size={12} />
-            Best for: {rating.occasion}
+    <div className={`rating-card rating-${tone.key}`}>
+      <div className="rating-hero">
+        <div className="rating-score" role="img" aria-label={`Style score ${rating.score} out of 10`}>
+          <svg viewBox="0 0 80 80" aria-hidden="true">
+            <circle className="rating-track" cx="40" cy="40" r={SCORE_RING_RADIUS} />
+            <circle
+              className="rating-fill"
+              cx="40"
+              cy="40"
+              r={SCORE_RING_RADIUS}
+              strokeDasharray={circumference}
+              strokeDashoffset={circumference * (1 - share)}
+            />
+          </svg>
+          <span>
+            <strong>{rating.score.toFixed(1)}</strong>
+            <small>out of 10</small>
           </span>
-        )}
+        </div>
+        <div className="rating-text">
+          <span className="rating-tone">{tone.label}</span>
+          <p className="rating-verdict">{rating.verdict}</p>
+          {rating.occasion && rating.occasion.toLowerCase() !== "unclear" && (
+            <span className="pill pill-outline">
+              <Icon name="sparkles" size={12} />
+              Best for: {rating.occasion}
+            </span>
+          )}
+        </div>
       </div>
-      {rating.scores && Object.keys(rating.scores).length > 0 && (
-        <dl className="rating-areas">
-          {SCORE_AREAS.filter(([key]) => rating.scores[key] != null).map(([key, label]) => (
-            <div key={key} className={rating.scores[key] < 7 ? "is-weak" : ""}>
-              <dt>{label}</dt>
-              <dd>
-                <span className="rating-bar" aria-hidden="true">
-                  <span style={{ width: `${rating.scores[key] * 10}%` }} />
+
+      {areas.length > 0 && (
+        <ul className="rating-tiles" aria-label="Scores by area">
+          {areas.map(([key, label, icon]) => {
+            const score = rating.scores[key];
+            const level = scoreTone(score).key;
+            return (
+              <li key={key} className={`tile-${level}`}>
+                <span className="rating-tile-label">
+                  <Icon name={icon} size={14} />
+                  {label}
                 </span>
-                {rating.scores[key].toFixed(1)}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      )}
-      {rating.wearing?.length > 0 && (
-        <p className="rating-wearing">
-          <strong>Seen:</strong> {rating.wearing.join(" · ")}
-        </p>
-      )}
-      {rating.strengths?.length > 0 && (
-        <ul className="rating-strengths">
-          {rating.strengths.map((strength) => (
-            <li key={strength}>
-              <Icon name="check" size={14} />
-              {capitalise(strength)}
-            </li>
-          ))}
+                <strong>{score.toFixed(1)}</strong>
+                <span className="rating-bar" aria-hidden="true">
+                  <span style={{ width: `${score * 10}%` }} />
+                </span>
+              </li>
+            );
+          })}
         </ul>
+      )}
+
+      {rating.summary && (
+        <section className="rating-why">
+          <h3>
+            <Icon name="sparkles" size={15} />
+            Why this rating
+          </h3>
+          <p>{rating.summary}</p>
+        </section>
+      )}
+
+      {rating.wearing?.length > 0 && (
+        <section className="rating-seen">
+          <h3>What your stylist saw</h3>
+          <ul>
+            {rating.wearing.map((piece) => (
+              <li key={piece}>{capitalise(piece)}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {rating.strengths?.length > 0 && (
+        <section className="rating-works">
+          <h3>What works</h3>
+          <ul className="rating-strengths">
+            {rating.strengths.map((strength) => (
+              <li key={strength}>
+                <Icon name="check" size={14} />
+                {capitalise(strength)}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {hasDetails && (
+        <section className="rating-breakdown">
+          <h3>How each score is worked out</h3>
+          <ul>
+            {SCORE_AREAS.filter(([key]) => rating.details[key]).map(([key, label, icon, aim]) => {
+              const detail = rating.details[key];
+              const level = scoreTone(detail.score).key;
+              return (
+                <li key={key} className={`detail-${level}`}>
+                  <header>
+                    <span className="detail-icon">
+                      <Icon name={icon} size={16} />
+                    </span>
+                    <div>
+                      <strong>{label}</strong>
+                      <small>{aim}</small>
+                    </div>
+                    {detail.confidence === "medium" && (
+                      <span className="detail-chip" title="Part of this area is out of view, so it counts a little less in the score">
+                        Partly visible
+                      </span>
+                    )}
+                    <b className="detail-score">{detail.score.toFixed(1)}</b>
+                  </header>
+                  {detail.confidence === "low" && (
+                    <p className="detail-limit">
+                      <Icon name="alert" size={13} />
+                      Mostly out of view, so this counts for much less in the score.
+                    </p>
+                  )}
+                  {detail.evidence && (
+                    <div className="detail-block">
+                      <span>What we saw</span>
+                      <p>{detail.evidence}</p>
+                    </div>
+                  )}
+                  {detail.reason && (
+                    <div className="detail-block">
+                      <span>Why it scores this</span>
+                      <p>{detail.reason}</p>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          <p className="rating-method">
+            The overall score is the average of these four areas. An area the photo shows only in part counts for
+            less, so a cropped photo doesn't lose points for what it can't show.
+          </p>
+          {rating.not_visible?.length > 0 && (
+            <p className="rating-hidden">
+              <Icon name="alert" size={14} />
+              Not visible in the photo, so not scored or advised on: {rating.not_visible.join(", ")}.
+            </p>
+          )}
+        </section>
       )}
     </div>
   );

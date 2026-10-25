@@ -1053,6 +1053,7 @@ export default function App() {
                       onRun={runPhoto}
                       isBusy={isFindingOutfit}
                       onTypedList={(text) => shopList({ text })}
+                      onOpenTool={openTool}
                     />
                   ) : tool === "gift" ? (
                     <GiftPanel
