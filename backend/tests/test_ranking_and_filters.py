@@ -195,8 +195,9 @@ def test_download_and_score_scores_thumbnails_in_groups(monkeypatch):
 
     def fake_encode(model, processor, images):
         batches.append(len(images))
-        # The photo's row is [1, 0]; each thumbnail is a unit vector at an angle.
-        if len(images) == 1:
+        # The photo is encoded first: its row is [1, 0]. Each thumbnail is a
+        # unit vector at an angle to it, so its similarity is 0.6.
+        if len(batches) == 1:
             return torch.tensor([[1.0, 0.0]])
         return torch.tensor([[0.6, 0.8]] * len(images))
 

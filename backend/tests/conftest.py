@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import image_shopping_service  # noqa: E402
 import llm_query_parser  # noqa: E402
 import main  # noqa: E402
+import outfit_service  # noqa: E402
 import text_shopping_service  # noqa: E402
 
 
@@ -26,6 +27,7 @@ def reset_server_state():
     main._assistant_log.clear()
     main._style_log.clear()
     main._watch_log.clear()
+    outfit_service._skip_until.clear()
     yield
     main._search_cache.clear()
     main._search_log.clear()
@@ -62,7 +64,10 @@ def mockable_http_sessions(monkeypatch):
 def no_serper(monkeypatch):
     """Tests never call Serper, SearchApi or Vercel Blob; tests that need
     them set fake keys."""
-    for name in ("SERPER_API_KEY", "SEARCHAPI_API_KEY", "BLOB_READ_WRITE_TOKEN", "GROQ_API_KEY", "GEMINI_API_KEY"):
+    for name in (
+        "SERPER_API_KEY", "SEARCHAPI_API_KEY", "BLOB_READ_WRITE_TOKEN", "GROQ_API_KEY", "GEMINI_API_KEY",
+        "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN", "KV_REST_API_URL", "KV_REST_API_TOKEN", "CRON_SECRET",
+    ):
         monkeypatch.delenv(name, raising=False)
 
 

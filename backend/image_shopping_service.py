@@ -13,6 +13,7 @@ import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
+from search_credits import SearchLimitError, known_empty
 from tryon_service import accessory_category, garment_category
 
 # On Vercel only /tmp is writable, so the downloaded model is cached there.
@@ -1671,12 +1672,17 @@ def run_google_lens(image_path: str | Path, query: str | None = None) -> list[di
         raise ValueError("Use a JPEG, PNG, or WebP image.")
 
     visual_matches = None
-    if fast_lens_available():
+    # A provider that was just read as out of credits is skipped: its call
+    # would fail anyway, after seconds of waiting.
+    fast = fast_lens_available() and not known_empty("searchapi")
+    if fast:
         try:
             visual_matches = run_searchapi_lens(image_path, mime_type, query)
         except Exception as exc:
             print(f"Fast Lens (SearchApi) failed, using SerpApi: {exc}")
     if not visual_matches:
+        if known_empty("serpapi") and not fast:
+            raise SearchLimitError()
         visual_matches = run_serpapi_lens(image_path, mime_type, api_key, query)
 
     return shopping_candidates(visual_matches)

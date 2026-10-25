@@ -218,3 +218,34 @@ def test_overlay_refuses_angled_glasses(client, monkeypatch):
     response = client.get(OVERLAY, params={"url": IMAGE_URL, "category": "glasses"})
     assert response.status_code == 422
     assert "front view" in response.json()["detail"]
+
+
+def bridge_gap_photo(lens="black"):
+    """Tinted lenses joined by a brow bar, with a small white gap between the bars."""
+    image = Image.new("RGB", (300, 120), "white")
+    draw = ImageDraw.Draw(image)
+    for left in (30, 160):
+        draw.ellipse((left, 20, left + 110, 100), fill=lens, outline="black", width=4)
+    draw.rectangle((120, 20, 180, 28), fill="black")  # the brow bar
+    draw.rectangle((138, 28, 162, 62), fill="black")  # bridge arch, with a gap under the bar
+    draw.rectangle((144, 31, 156, 38), fill="white")  # the gap: background seen between the bars
+    return image
+
+
+def test_the_gap_between_the_bridge_bars_is_cut_out():
+    cut = t.cut_out_product(bridge_gap_photo(), "glasses")
+    centre = cut.width // 2
+    # The gap is 7 px tall, starting 11 px below the top of the trimmed frame.
+    inside_gap = [alpha_at(cut, (centre, y)) for y in range(13, 16)]
+    assert max(inside_gap) == 0, "the gap between the bridge bars should be transparent"
+    assert alpha_at(cut, (centre, 22)) > 200  # the bridge arch below it stays solid
+    assert alpha_at(cut, (cut.width // 4, cut.height // 2)) > 200  # the tinted lens stays solid
+
+
+def test_small_reflections_inside_a_lens_are_kept():
+    image = bridge_gap_photo()
+    draw = ImageDraw.Draw(image)
+    draw.ellipse((55, 40, 75, 52), fill="white")  # a glare spot inside the left lens
+    cut = t.cut_out_product(image, "glasses")
+    left_lens_glare = (55 - 30 + 10, 40 - 20 + 6)
+    assert alpha_at(cut, left_lens_glare) > 128

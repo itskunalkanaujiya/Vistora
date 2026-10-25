@@ -17,6 +17,7 @@ import requests
 
 from llm_query_parser import understand_query
 from query_understanding import parse_query, requirements_score
+from search_credits import SearchLimitError, known_empty
 from tryon_service import accessory_category, garment_category
 from image_shopping_service import (
     QUERY_STOPWORDS,
@@ -300,13 +301,16 @@ def fetch_shopping_results(query: str) -> tuple[list[dict], str]:
     separate from SerpApi's, which are kept for photo search. SerpApi is the
     fallback when Serper isn't set up, fails, runs out or finds nothing.
     """
-    if os.getenv("SERPER_API_KEY"):
+    serper = bool(os.getenv("SERPER_API_KEY")) and not known_empty("serper")
+    if serper:
         try:
             results = run_serper_shopping(query)
             if results:
                 return results, "serper"
         except Exception as exc:
             print(f"Serper shopping failed, using SerpApi: {exc}")
+    if known_empty("serpapi") and not serper:
+        raise SearchLimitError()
     return run_google_shopping(query), "serpapi"
 
 

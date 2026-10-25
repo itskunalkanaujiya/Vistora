@@ -24,6 +24,7 @@ import io
 import json
 import os
 import re
+import time
 import statistics
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -206,13 +207,30 @@ def _clean(text, limit):
     return re.sub(r"\s+", " ", text).strip()[:limit]
 
 
-def ask_vision_model(url, api_key, models, prompt, photo_url):
+# A model that just failed (retired, out of quota, overloaded or too slow) is
+# skipped for a while, so one bad model doesn't add its wait to every search.
+SKIP_SECONDS = {404: 3600, 429: 600, 503: 120, "slow": 120}
+_skip_until = {}
+
+
+def _skip(model, reason):
+    _skip_until[model] = time.monotonic() + SKIP_SECONDS[reason]
+
+
+def ask_vision_model(
+    url, api_key, models, prompt, photo_url, max_tokens=1400, effort="low", timeout=VISION_TIMEOUT_SECONDS
+):
     """The first available model's JSON answer about the photo. Raises OutfitError."""
+    busy = False
+    unreachable = False
+    now = time.monotonic()
+    # If every model was recently skipped, try them all anyway.
+    models = [m for m in models if _skip_until.get(m, 0) <= now] or models
     for model in models:
         payload = {
             "model": model,
             "temperature": 0,
-            "max_tokens": 1400,
+            "max_tokens": max_tokens,
             "response_format": {"type": "json_object"},
             "messages": [{
                 "role": "user",
@@ -223,23 +241,30 @@ def ask_vision_model(url, api_key, models, prompt, photo_url):
             }],
         }
         if url == GEMINI_URL:
-            payload["reasoning_effort"] = "low"
+            payload["reasoning_effort"] = effort
         try:
             response = requests.post(
                 url,
                 headers={"Authorization": f"Bearer {api_key}"},
                 json=payload,
-                timeout=VISION_TIMEOUT_SECONDS,
+                timeout=timeout,
             )
         except requests.RequestException as exc:
             print(f"Outfit model request failed ({model}): {exc}")
-            raise OutfitError("Couldn't reach the outfit AI. Please try again.")
+            _skip(model, "slow")
+            unreachable = True
+            continue
 
         if response.status_code in (404, 503):
             print(f"Vision model {model} is not available ({response.status_code}); trying the next one.")
+            _skip(model, response.status_code)
             continue
         if response.status_code == 429:
-            raise OutfitError("The outfit AI is busy right now. Please try again in a minute.")
+            # Out of quota or busy: another model in the list may still answer.
+            print(f"Vision model {model} is busy (429); trying the next one.")
+            _skip(model, 429)
+            busy = True
+            continue
         if response.status_code != 200:
             print(f"Outfit model error {response.status_code} ({model}): {response.text[:300]}")
             raise OutfitError("Couldn't identify the outfit. Please try again.")
@@ -256,6 +281,10 @@ def ask_vision_model(url, api_key, models, prompt, photo_url):
             print(f"Outfit model returned unreadable output ({model}): {exc}")
             raise OutfitError("Couldn't identify the outfit. Please try another photo.")
 
+    if busy:
+        raise OutfitError("The outfit AI is busy right now. Please try again in a minute.")
+    if unreachable:
+        raise OutfitError("Couldn't reach the outfit AI. Please try again.")
     raise OutfitError("Couldn't identify the outfit. Please try again.")
 
 
@@ -282,12 +311,20 @@ def read_outfit(data, frame, order):
     return {"gender": gender if gender in GENDERS else "unisex", "items": items}
 
 
-def ask_vision(image, prompt, not_set_up="Find the outfit isn't set up on this server yet."):
+def ask_vision(
+    image,
+    prompt,
+    not_set_up="Find the outfit isn't set up on this server yet.",
+    gemini_models=None,
+    **options,
+):
     """
     Ask the best available vision model about a photo; returns (answer,
     frame, box order, provider name). "BOX_FORMAT" in the prompt becomes the
     provider's box format. Tries each provider in turn; raises OutfitError
-    with a user-facing message if none can answer.
+    with a user-facing message if none can answer. gemini_models replaces the
+    default Gemini model list; options (max_tokens, effort, timeout) go to
+    ask_vision_model.
     """
     providers = vision_providers()
     if not providers:
@@ -299,7 +336,12 @@ def ask_vision(image, prompt, not_set_up="Find the outfit isn't set up on this s
     for name, url, api_key, models, order in providers:
         try:
             answer = ask_vision_model(
-                url, api_key, models, prompt.replace("BOX_FORMAT", BOX_FORMATS[order]), photo_url
+                url,
+                api_key,
+                gemini_models if url == GEMINI_URL and gemini_models else models,
+                prompt.replace("BOX_FORMAT", BOX_FORMATS[order]),
+                photo_url,
+                **options,
             )
         except OutfitError as exc:
             print(f"{name} could not answer: {exc}")

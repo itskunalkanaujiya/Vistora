@@ -5,5 +5,11 @@
       "maxDuration": 300,
       "excludeFiles": "{tests/**,**/__pycache__/**,.pytest_cache/**,Dockerfile,requirements-dev.txt,pytest.ini}"
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/v1/cron/warm",
+      "schedule": "30 1 * * *"
+    }
+  ]
 }

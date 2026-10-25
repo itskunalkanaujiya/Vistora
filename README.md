@@ -257,6 +257,50 @@ result cache and search limit are kept per server instance.
 The `backend/Dockerfile` builds the same backend as a container for any Docker
 host.
 
+## Keeping search credits from running out
+
+Search runs on paid providers (SerpApi, SearchApi.io, Serper.dev), and each
+has a limited number of searches. Three things protect the app:
+
+- **Skipping empty providers.** When a provider was last read as having no
+  searches left, searches skip it instead of waiting for a call that will fail,
+  and go to the next provider. If every provider is empty, visitors see a clear
+  "search is at its limit" message (HTTP 503) instead of a generic failure;
+  searches already run still load from the cache.
+- **Warning you early.** `GET /api/v1/usage/status` answers `200` while every
+  provider has plenty left and `503` (with a list of what is low) once one gets
+  low. Point a free uptime monitor at it (for example
+  [UptimeRobot](https://uptimerobot.com), HTTP monitor, 5-minute interval) and it
+  emails you before searches stop. A provider counts as low at 25 searches
+  (SerpApi, or under 10% of its plan), 15 (SearchApi) or 50 (Serper); change
+  these with `LOW_CREDITS_SERPAPI`, `LOW_CREDITS_SEARCHAPI` and
+  `LOW_CREDITS_SERPER`.
+- **Showing visitors.** The footer shows what is left on each provider.
+
+Top up or upgrade a plan on the provider's site before it reaches zero.
+
+### Shared cache and warm searches (optional)
+
+Without it, each server instance remembers results only in its own memory,
+and Vercel starts instances empty. With a free [Upstash Redis](https://upstash.com)
+database, every instance shares one cache, so a search anyone ran in the last
+hour (photo or text) is answered in about 0.01 s.
+
+In the `vistora-api` project settings add `UPSTASH_REDIS_REST_URL` and
+`UPSTASH_REDIS_REST_TOKEN` (adding Upstash Redis from the Vercel Marketplace
+sets `KV_REST_API_URL` and `KV_REST_API_TOKEN`, which also work), then
+redeploy. If Redis is unreachable, searches carry on using memory only.
+
+A daily Vercel Cron job (`/api/v1/cron/warm`, 07:00 India time, set in
+`backend/vercel.json`) also searches the most-searched typed queries ahead of
+time, filling up with the seed list in `backend/popular_searches.py`, and keeps
+them for 26 hours. Set `CRON_SECRET` in Vercel (any long random string) so only
+the cron can call it. Each query it has to search costs one Serper search
+(2 credits): `WARM_LIMIT` (default 8) caps the queries per run, `WARM_LIMIT=0`
+turns the job off, and it skips the run when Serper has fewer than
+`WARM_KEEP_SEARCHES` (default 300) searches left. Warmed prices can be up to a
+day old.
+
 ## API
 
 | Method | Path | Description |

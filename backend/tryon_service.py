@@ -217,10 +217,21 @@ def _trim(rgba):
     return rgba.crop(box)
 
 
+# Small gaps between the bridge bars sit in the middle of the frame; unlike
+# reflections on mirrored lenses (which are inside a lens) they are background.
+BRIDGE_ZONE = (0.38, 0.62)
+MIN_BRIDGE_GAP_AREA = 0.001
+
+
 def _clear_lenses(mask):
-    """Mark large enclosed background areas (value 0) as background (128)."""
+    """
+    Mark enclosed background areas (value 0) as background (128): large ones
+    (clear lenses) and any gap between the bridge bars. Small areas elsewhere
+    stay, as they are reflections on mirrored lenses.
+    """
     width, height = mask.size
     min_area = MIN_LENS_AREA * width * height
+    min_gap = MIN_BRIDGE_GAP_AREA * width * height
     data = mask.load()
     for y in range(0, height, 2):
         for x in range(0, width, 2):
@@ -228,7 +239,12 @@ def _clear_lenses(mask):
                 continue
             ImageDraw.floodfill(mask, (x, y), 64)
             area = mask.histogram()[64]
-            ImageDraw.floodfill(mask, (x, y), 128 if area >= min_area else 255)
+            clear = area >= min_area
+            if not clear and area >= min_gap:
+                columns = np.nonzero((np.asarray(mask) == 64).any(axis=0))[0]
+                centre = (columns.min() + columns.max() + 1) / 2 / width
+                clear = BRIDGE_ZONE[0] <= centre <= BRIDGE_ZONE[1]
+            ImageDraw.floodfill(mask, (x, y), 128 if clear else 255)
 
 
 def cut_out_product(image, category):

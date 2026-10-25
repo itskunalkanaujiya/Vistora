@@ -4,6 +4,7 @@ from io import BytesIO
 from pathlib import Path
 import asyncio
 import hashlib
+import hmac
 import json
 import os
 import tempfile
@@ -14,7 +15,7 @@ import requests
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel
 
@@ -23,6 +24,9 @@ from image_shopping_service import (
     load_clip_model,
     search_products_by_image as search_online_products,
 )
+import search_credits
+import shared_cache
+from popular_searches import POPULAR_SEARCHES
 from text_shopping_service import search_products_by_text as search_shopping_text
 from outfit_service import OutfitError, complete_the_look, find_outfit
 from style_service import analyse_colours, rate_outfit
@@ -174,6 +178,13 @@ ONLINE_SEARCH_ERROR = (
 )
 
 
+def search_failure(exc):
+    """The HTTP error for a failed search: a clear message when every provider is out of credits."""
+    if isinstance(exc, search_credits.SearchLimitError):
+        return HTTPException(status_code=503, detail=str(exc), headers={"Retry-After": "3600"})
+    return HTTPException(status_code=502, detail=ONLINE_SEARCH_ERROR)
+
+
 @contextmanager
 def lens_ready_image(image: Image.Image):
     """Yield a temporary JPEG small enough for the online service."""
@@ -256,7 +267,7 @@ def fetch_search_usage():
     )
     response.raise_for_status()
     account = response.json()
-    return {
+    data = {
         # SerpApi: photo search (and text search when Serper isn't set up).
         "searches_left": account.get("total_searches_left"),
         "searches_per_month": account.get("searches_per_month"),
@@ -266,6 +277,11 @@ def fetch_search_usage():
         "text": fetch_serper_usage(),
         "fast_photo": fetch_searchapi_usage(),
     }
+    # The search code skips providers that are known to be empty.
+    search_credits.record("serpapi", data["searches_left"])
+    search_credits.record("serper", (data["text"] or {}).get("searches_left"))
+    search_credits.record("searchapi", (data["fast_photo"] or {}).get("searches_left"))
+    return data
 
 
 def fetch_searchapi_usage():
@@ -327,6 +343,61 @@ async def search_usage():
     return data
 
 
+# Below these many searches left a provider counts as "low" (the owner is
+# warned before it runs out); SerpApi is also low under 10% of its plan.
+LOW_SEARCHES = {
+    "serpapi": int(os.getenv("LOW_CREDITS_SERPAPI", "25")),
+    "searchapi": int(os.getenv("LOW_CREDITS_SEARCHAPI", "15")),
+    "serper": int(os.getenv("LOW_CREDITS_SERPER", "50")),
+}
+STATUS_ORDER = ("ok", "low", "empty")
+
+
+def provider_status(left, low_at, total=None):
+    if left is None:
+        return "ok"
+    if left <= 0:
+        return "empty"
+    if left <= low_at or (total and left / total <= 0.1):
+        return "low"
+    return "ok"
+
+
+def credit_status(usage):
+    """{"status", "providers", "problems"}: the worst state across providers."""
+    providers = {
+        "serpapi": ("Photo and text searches (SerpApi)", usage.get("searches_left"), usage.get("searches_per_month")),
+        "searchapi": ("Fast photo searches (SearchApi)", (usage.get("fast_photo") or {}).get("searches_left"), None),
+        "serper": ("Text searches (Serper)", (usage.get("text") or {}).get("searches_left"), None),
+    }
+    report, problems, worst = {}, [], "ok"
+    for key, (label, left, total) in providers.items():
+        if left is None and key != "serpapi":
+            continue  # not set up on this server
+        state = provider_status(left, LOW_SEARCHES[key], total)
+        report[key] = {"label": label, "left": left, "status": state}
+        if state != "ok":
+            problems.append(f"{label}: {'none left' if state == 'empty' else f'only {left} left'}")
+        if STATUS_ORDER.index(state) > STATUS_ORDER.index(worst):
+            worst = state
+    return {"status": worst, "providers": report, "problems": problems, "renews_on": usage.get("renews_on")}
+
+
+@app.get("/api/v1/usage/status")
+async def usage_status():
+    """
+    A health check for the search credits, for an uptime monitor (for example
+    UptimeRobot) to watch: 200 while every provider has plenty left, 503 once
+    any is low or empty, so the monitor emails the owner before searches stop.
+    """
+    data = await search_usage()
+    result = credit_status(data)
+    if result["status"] != "ok":
+        print(f"SEARCH CREDITS {result['status'].upper()}: {'; '.join(result['problems'])}")
+        return JSONResponse(status_code=503, content=result)
+    return result
+
+
 def forget_search_usage():
     """A search just ran; read the count again next time."""
     with _usage_lock:
@@ -353,10 +424,7 @@ async def recognize_image(request: Request, file: UploadFile = File(...)):
 
     except Exception as exc:
         print(f"Product identification failed: {exc}")
-        raise HTTPException(
-            status_code=502,
-            detail=ONLINE_SEARCH_ERROR,
-        )
+        raise search_failure(exc)
 
     return {
         "message": "Product identification completed.",
@@ -393,29 +461,41 @@ def image_fingerprint(image: Image.Image) -> str:
     return digest.hexdigest()
 
 
+# A result found in the shared cache is kept in memory for this long only,
+# since its real age is not known.
+SHARED_HIT_MEMORY_SECONDS = 5 * 60
+
+
 def get_cached_search(key):
     with _search_cache_lock:
         entry = _search_cache.get(key)
 
-        if entry is None:
-            return None
-
-        stored_at, result = entry
-        if time.monotonic() - stored_at > CACHE_TTL_SECONDS:
+        if entry is not None:
+            stored_at, result = entry
+            if time.monotonic() - stored_at <= CACHE_TTL_SECONDS:
+                _search_cache.move_to_end(key)
+                return result
             del _search_cache[key]
-            return None
 
-        _search_cache.move_to_end(key)
-        return result
+    # Not in this instance's memory: another instance may have searched it.
+    result = shared_cache.get(key) if shared_cache.enabled() else None
+    if result is not None:
+        store_cached_search(
+            key, result, share=False, age_seconds=CACHE_TTL_SECONDS - SHARED_HIT_MEMORY_SECONDS
+        )
+    return result
 
 
-def store_cached_search(key, result):
+def store_cached_search(key, result, ttl_seconds=CACHE_TTL_SECONDS, share=True, age_seconds=0):
     with _search_cache_lock:
-        _search_cache[key] = (time.monotonic(), result)
+        _search_cache[key] = (time.monotonic() - age_seconds, result)
         _search_cache.move_to_end(key)
 
         while len(_search_cache) > CACHE_MAX_ENTRIES:
             _search_cache.popitem(last=False)
+
+    if share and shared_cache.enabled():
+        shared_cache.put(key, result, ttl_seconds)
 
 
 # --------------------------------------------------
@@ -563,14 +643,16 @@ def build_search_response(online_results: dict) -> dict:
     }
 
 
-def cache_if_useful(cache_key, response):
+def cache_if_useful(cache_key, response, ttl_seconds=CACHE_TTL_SECONDS):
     # Only cache searches that found something, so a temporary Lens
     # failure is retried next time.
     found = response.get("best_matches") or response.get("cheapest_alternatives")
     # Outfits: cache when every item's search finished.
     items = response.get("items") or []
     if found or (items and not any(item.get("failed") for item in items)):
-        store_cached_search(cache_key, response)
+        store_cached_search(cache_key, response, ttl_seconds)
+        return True
+    return False
 
 
 @app.post("/api/v1/products/search-by-image")
@@ -601,10 +683,7 @@ async def search_products_by_image(
 
     except Exception as exc:
         print(f"Online product search failed: {exc}")
-        raise HTTPException(
-            status_code=502,
-            detail=ONLINE_SEARCH_ERROR,
-        )
+        raise search_failure(exc)
 
     # Step 3: Return both online sections.
     response = build_search_response(online_results)
@@ -730,14 +809,19 @@ def text_query_or_400(body: TextSearchRequest) -> str:
     return query
 
 
+def normalised_query(query: str) -> str:
+    return " ".join(query.lower().split())
+
+
 def text_cache_key(query: str) -> str:
-    return f"text:{' '.join(query.lower().split())}"
+    return f"text:{normalised_query(query)}"
 
 
 @app.post("/api/v1/products/search-by-text")
 async def search_products_by_text(request: Request, body: TextSearchRequest):
     query = text_query_or_400(body)
     cache_key = text_cache_key(query)
+    shared_cache.count_query(normalised_query(query))
 
     cached = get_cached_search(cache_key)
     if cached is not None:
@@ -750,7 +834,7 @@ async def search_products_by_text(request: Request, body: TextSearchRequest):
         online_results = await run_in_threadpool(search_shopping_text, query, 10)
     except Exception as exc:
         print(f"Text search failed: {exc}")
-        raise HTTPException(status_code=502, detail=ONLINE_SEARCH_ERROR)
+        raise search_failure(exc)
 
     response = build_search_response(online_results)
     cache_if_useful(cache_key, response)
@@ -762,6 +846,7 @@ async def search_products_by_text_stream(request: Request, body: TextSearchReque
     """Same as /search-by-text, streamed like the photo search (stage, final, error)."""
     query = text_query_or_400(body)
     cache_key = text_cache_key(query)
+    shared_cache.count_query(normalised_query(query))
 
     cached = get_cached_search(cache_key)
     if cached is None:
@@ -773,6 +858,92 @@ async def search_products_by_text_stream(request: Request, body: TextSearchReque
         first_stage="searching",
         run=lambda emit: search_shopping_text(query, 10),
     )
+
+
+# --------------------------------------------------
+# 12b. Keep popular text searches warm
+# --------------------------------------------------
+
+# A daily job (see vercel.json) searches the most-searched queries ahead of
+# time and stores them in the shared cache, so the next shopper gets them at
+# once. Each query it has to search costs one Serper search (2 credits), so
+# WARM_LIMIT caps the queries per run (WARM_LIMIT=0 turns the job off), and it
+# never runs when Serper is low, so visitors keep the credits.
+WARM_LIMIT = int(os.getenv("WARM_LIMIT", "8"))
+WARM_KEEP_SEARCHES = int(os.getenv("WARM_KEEP_SEARCHES", "300"))
+# Longer than a day, so the next run lands before the last results expire.
+WARM_TTL_SECONDS = int(os.getenv("WARM_TTL_SECONDS", str(26 * 60 * 60)))
+
+
+def queries_to_warm(limit: int, day: int) -> list[str]:
+    """The most-searched queries first, then seed searches (a different slice each day)."""
+    queries = shared_cache.top_queries(limit)
+
+    start = (day * limit) % len(POPULAR_SEARCHES)
+    rotated = POPULAR_SEARCHES[start:] + POPULAR_SEARCHES[:start]
+
+    unique = []
+    for query in queries + rotated:
+        if query not in unique:
+            unique.append(query)
+    return unique[:limit]
+
+
+def warm_popular_searches(usage=None) -> dict:
+    """Warm the popular searches. usage: the credit counts just read (see search_usage)."""
+    if WARM_LIMIT <= 0:
+        return {"skipped": "WARM_LIMIT is 0"}
+    if not shared_cache.enabled():
+        return {"skipped": "no shared cache is configured"}
+    if not os.getenv("SERPER_API_KEY"):
+        return {"skipped": "warming uses Serper, so it doesn't spend photo-search credits"}
+
+    spare = ((usage or {}).get("text") or {}).get("searches_left")
+    if spare is None:
+        spare = search_credits.left("serper")
+    if spare is not None and spare < WARM_KEEP_SEARCHES:
+        return {"skipped": f"only {spare} text searches left; keeping them for visitors"}
+
+    warmed, already_cached, failed = [], 0, 0
+
+    for query in queries_to_warm(WARM_LIMIT, time.gmtime().tm_yday):
+        cache_key = text_cache_key(query)
+
+        if get_cached_search(cache_key) is not None:
+            already_cached += 1
+            continue
+
+        try:
+            response = build_search_response(search_shopping_text(query, 10))
+        except Exception as exc:
+            print(f"Could not warm {query!r}: {exc}")
+            failed += 1
+            continue
+
+        if cache_if_useful(cache_key, response, WARM_TTL_SECONDS):
+            warmed.append(query)
+        else:
+            failed += 1
+
+    return {"warmed": warmed, "already_cached": already_cached, "failed": failed}
+
+
+@app.get("/api/v1/cron/warm")
+async def warm_cache(request: Request):
+    """Called by Vercel Cron, which sends CRON_SECRET as a bearer token."""
+    secret = os.getenv("CRON_SECRET")
+    if not secret:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    supplied = request.headers.get("authorization", "")
+    if not hmac.compare_digest(supplied.encode(), f"Bearer {secret}".encode()):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        usage = await search_usage()  # the credit counts the job checks first
+    except HTTPException:
+        usage = None
+    return await run_in_threadpool(warm_popular_searches, usage)
 
 
 # --------------------------------------------------
