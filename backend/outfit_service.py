@@ -34,6 +34,7 @@ from PIL import Image, ImageOps
 
 from listing_judge import judge_listings
 from llm_query_parser import GROQ_URL, chat_json
+import image_shopping_service
 from image_shopping_service import compute_visual_similarity_scores, download_thumbnails, load_clip_model
 from text_shopping_service import search_products_by_text
 
@@ -473,6 +474,11 @@ def judged_sections(item, result, gender):
     return best, cheapest
 
 
+def visual_ranking_available():
+    """Whether CLIP is on, so listings can be compared with an item's crop."""
+    return image_shopping_service.CLIP_AVAILABLE and image_shopping_service.ENABLE_CLIP_RANKING
+
+
 def shop_items(items, gender, emit, image=None, judge=False):
     """
     Search every item in parallel, adding its results; emits "item" each.
@@ -487,7 +493,8 @@ def shop_items(items, gender, emit, image=None, judge=False):
         try:
             crop = crop_item(image, item.get("box"))
             # The description is already a clean search; skip the text model.
-            if crop is not None or judge:
+            # The wide, loose search only pays off when CLIP then filters it by look.
+            if (crop is not None and visual_ranking_available()) or judge:
                 result = search_products_by_text(
                     item["query"], SEARCH_POOL, understand=False, min_relevance=LOOSE_RELEVANCE
                 )

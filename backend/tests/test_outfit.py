@@ -232,9 +232,24 @@ def test_outfit_items_search_a_wide_pool_when_they_have_a_crop(vision, monkeypat
         return {"best_matches": [], "cheapest_alternatives": []}
 
     monkeypatch.setattr(o, "search_products_by_text", search)
+    monkeypatch.setattr(o, "visual_ranking_available", lambda: True)
     o.find_outfit(Image.new("RGB", (1000, 1000)))
 
     # t-shirt and jeans have boxes; the watch's box was too thin.
     assert sorted(calls, key=str) == sorted(
         [(o.SEARCH_POOL, o.LOOSE_RELEVANCE)] * 2 + [(o.RESULTS_PER_ITEM, None)], key=str
     )
+
+
+def test_without_clip_a_crop_item_uses_the_normal_strict_search(vision, monkeypatch):
+    calls = []
+
+    def search(query, max_results, understand, min_relevance=None):
+        calls.append((max_results, min_relevance))
+        return {"best_matches": [], "cheapest_alternatives": []}
+
+    monkeypatch.setattr(o, "search_products_by_text", search)
+    monkeypatch.setattr(o, "visual_ranking_available", lambda: False)
+    o.find_outfit(Image.new("RGB", (1000, 1000)))
+
+    assert calls and all(call == (o.RESULTS_PER_ITEM, None) for call in calls)
