@@ -29,7 +29,8 @@ full project, API and local setup.
 | `TRUST_PROXY_HEADERS` | `true` behind a hosting proxy, so search limits are per visitor |
 | `SEARCH_LIMIT` / `SEARCH_WINDOW_SECONDS` | Optional. Defaults: 10 searches per 600 s per visitor |
 | `CLIP_MODEL_NAME` | Optional. Defaults to `kunalkanaujiya/clip-vit-base-patch32-vision` |
-| `ENABLE_CLIP_RANKING` | Optional. `false` skips visual re-ranking |
+| `ENABLE_CLIP_RANKING` | Optional. Off by default; `true` loads CLIP (needs torch and transformers installed) |
+| `VISUAL_RERANK` | Optional. With CLIP on, `true` also scores photo-search thumbnails (look-alikes, similarity labels) |
 
 ## CLIP model
 

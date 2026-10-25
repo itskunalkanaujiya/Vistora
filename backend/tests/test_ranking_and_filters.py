@@ -189,6 +189,7 @@ def test_download_and_score_scores_thumbnails_in_groups(monkeypatch):
     torch = pytest.importorskip("torch")
     from PIL import Image
 
+    monkeypatch.setattr(s, "torch", torch)
     monkeypatch.setattr(s, "clip_for_request", lambda: (object(), object()))
     monkeypatch.setattr(s, "download_thumbnail", lambda url: Image.new("RGB", (4, 4)) if url else None)
 

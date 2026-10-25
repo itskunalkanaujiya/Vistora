@@ -21,7 +21,6 @@ from pydantic import BaseModel
 
 from image_shopping_service import (
     identify_product,
-    load_clip_model,
     search_products_by_image as search_online_products,
 )
 import fast_photo
@@ -46,9 +45,6 @@ from tryon_service import GARMENT_WORDS, TryOnError, product_overlay, try_on
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Load CLIP in the background so the first search does not wait for it,
-    # while the server still starts accepting requests immediately.
-    threading.Thread(target=load_clip_model, daemon=True).start()
     yield
 
 

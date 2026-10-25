@@ -23,18 +23,35 @@ from tryon_service import accessory_category, garment_category
 if os.getenv("VERCEL") and not os.getenv("HF_HOME"):
     os.environ["HF_HOME"] = "/tmp/huggingface"
 
-try:
-    import torch
-    from PIL import Image
-    from transformers import CLIPImageProcessor, CLIPVisionModelWithProjection
+# CLIP (torch + transformers) is optional and off by default: loading it costs
+# 15-25 s on a cold serverless instance and it did not improve ranking. Set
+# ENABLE_CLIP_RANKING=true and install torch and transformers to use it.
+ENABLE_CLIP_RANKING = os.getenv("ENABLE_CLIP_RANKING", "false").lower() in {
+    "true",
+    "1",
+    "yes",
+    "on",
+}
 
-    CLIP_AVAILABLE = True
+torch = None
+Image = None
+CLIPImageProcessor = None
+CLIPVisionModelWithProjection = None
+CLIP_AVAILABLE = False
+
+try:
+    from PIL import Image
 except ImportError:
-    torch = None
-    Image = None
-    CLIPImageProcessor = None
-    CLIPVisionModelWithProjection = None
-    CLIP_AVAILABLE = False
+    pass
+
+if ENABLE_CLIP_RANKING:
+    try:
+        import torch
+        from transformers import CLIPImageProcessor, CLIPVisionModelWithProjection
+
+        CLIP_AVAILABLE = True
+    except ImportError:
+        pass
 
 
 # --------------------------------------------------
@@ -56,11 +73,6 @@ CLIP_MODEL_NAME = os.getenv(
 # Photo searches skip thumbnail download and CLIP scoring unless this is on.
 # Without it there are no "looks N% similar" labels and no cheaper look-alikes.
 VISUAL_RERANK = os.getenv("VISUAL_RERANK", "false").lower() in {"1", "true", "yes", "on"}
-ENABLE_CLIP_RANKING = os.getenv("ENABLE_CLIP_RANKING", "true").lower() in {
-    "true",
-    "1",
-    "yes",
-}
 
 MAX_IMAGE_BYTES = 512000
 MAX_THUMBNAIL_BYTES = 3 * 1024 * 1024
