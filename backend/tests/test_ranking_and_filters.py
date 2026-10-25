@@ -140,6 +140,7 @@ def test_no_shopping_lookup_without_serper():
 
 
 def test_photo_search_shows_lens_order_first_then_ranked(monkeypatch, tmp_path):
+    monkeypatch.setattr(s, "VISUAL_RERANK", True)
     candidates = [
         {"title": f"Watch {name}", "source": "Flipkart", "link": f"https://www.flipkart.com/w/p/{name}",
          "thumbnail": f"https://img.example/{name}.jpg",
@@ -188,7 +189,7 @@ def test_download_and_score_scores_thumbnails_in_groups(monkeypatch):
     torch = pytest.importorskip("torch")
     from PIL import Image
 
-    monkeypatch.setattr(s, "load_clip_model", lambda: (object(), object()))
+    monkeypatch.setattr(s, "clip_for_request", lambda: (object(), object()))
     monkeypatch.setattr(s, "download_thumbnail", lambda url: Image.new("RGB", (4, 4)) if url else None)
 
     batches = []
@@ -219,7 +220,7 @@ def test_download_and_score_scores_thumbnails_in_groups(monkeypatch):
 
 
 def test_download_and_score_without_clip_just_downloads(monkeypatch):
-    monkeypatch.setattr(s, "load_clip_model", lambda: (None, None))
+    monkeypatch.setattr(s, "clip_for_request", lambda: (None, None))
     monkeypatch.setattr(s, "download_thumbnails", lambda items, deadline=None: ["img"] * len(items))
     called = []
 
@@ -267,3 +268,19 @@ def test_select_sections_reports_dupes_with_savings():
     assert sections["dupes"][0]["dupe_savings"] == 2001
 
     assert s.select_sections(kept, max_results=10, preview=True)["dupes"] == []
+
+
+def test_search_does_not_wait_for_clip_to_load(monkeypatch):
+    import image_shopping_service as s
+
+    started = []
+    monkeypatch.setattr(s, "_clip_model", None)
+    monkeypatch.setattr(s, "_clip_processor", None)
+    monkeypatch.setattr(s, "_clip_loader", None)
+    monkeypatch.setattr(s, "ENABLE_CLIP_RANKING", True)
+    monkeypatch.setattr(s, "CLIP_AVAILABLE", True)
+    monkeypatch.setattr(s, "load_clip_model", lambda: started.append(1) or (None, None))
+
+    assert s.clip_for_request() == (None, None)
+    s._clip_loader.join(2)
+    assert started == [1]

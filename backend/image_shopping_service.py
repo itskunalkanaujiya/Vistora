@@ -53,6 +53,9 @@ CLIP_MODEL_NAME = os.getenv(
     "CLIP_MODEL_NAME", "kunalkanaujiya/clip-vit-base-patch32-vision"
 )
 
+# Photo searches skip thumbnail download and CLIP scoring unless this is on.
+# Without it there are no "looks N% similar" labels and no cheaper look-alikes.
+VISUAL_RERANK = os.getenv("VISUAL_RERANK", "false").lower() in {"1", "true", "yes", "on"}
 ENABLE_CLIP_RANKING = os.getenv("ENABLE_CLIP_RANKING", "true").lower() in {
     "true",
     "1",
@@ -601,6 +604,30 @@ def derive_product_query(candidates):
 # --------------------------------------------------
 
 
+_clip_loader = None
+
+
+def clip_for_request():
+    """
+    The CLIP model if it is already loaded, else (None, None).
+
+    A new serverless instance needs 15-25 s to load the model (download plus
+    PyTorch start-up). A search must not wait for that: it ranks by title
+    match alone this once, while the model loads in the background for the
+    next search.
+    """
+    global _clip_loader
+
+    if _clip_model is not None and _clip_processor is not None:
+        return _clip_model, _clip_processor
+    if not ENABLE_CLIP_RANKING or not CLIP_AVAILABLE:
+        return None, None
+    if _clip_loader is None or not _clip_loader.is_alive():
+        _clip_loader = threading.Thread(target=load_clip_model, daemon=True)
+        _clip_loader.start()
+    return None, None
+
+
 def load_clip_model():
     global _clip_model, _clip_processor
 
@@ -749,7 +776,7 @@ def download_and_score(image_path, candidates, deadline=THUMBNAIL_DEADLINE, on_d
     candidate index (empty when CLIP is unavailable). on_downloaded() is
     called once the downloads are over, before the last group is scored.
     """
-    model, processor = load_clip_model()
+    model, processor = clip_for_request()
     query_image = None
 
     if model is not None and processor is not None and Image is not None and torch is not None:
@@ -834,7 +861,7 @@ def compute_visual_similarity_scores(image_path, candidates, thumbnails=None):
     if not candidates:
         return {}
 
-    model, processor = load_clip_model()
+    model, processor = clip_for_request()
     if model is None or processor is None or Image is None or torch is None:
         return {}
 
@@ -1951,9 +1978,14 @@ def search_products_by_image(
             start_page_details(candidates, deadline=lens_done + PAGE_FETCH_DEADLINE)
         )
 
-    thumbnails, similarity_scores = download_and_score(
-        image_path, candidates, on_downloaded=start_pages
-    )
+    if VISUAL_RERANK:
+        thumbnails, similarity_scores = download_and_score(
+            image_path, candidates, on_downloaded=start_pages
+        )
+    else:
+        # Visual scoring costs ~3 s per search and, measured on 48 photos, does
+        # not improve which product comes first, so seller pages start at once.
+        similarity_scores = {}
     page_job = page_jobs[0] if page_jobs else start_page_details(
         candidates, deadline=lens_done + PAGE_FETCH_DEADLINE
     )

@@ -100,6 +100,8 @@ def test_news_pages_are_left_out_of_the_sections():
 def search(monkeypatch, tmp_path):
     from PIL import Image
 
+    monkeypatch.setattr(s, "VISUAL_RERANK", True)
+
     def run(candidates, scores, query):
         monkeypatch.setattr(s, "run_google_lens", lambda path, query=None: [dict(c) for c in candidates])
         monkeypatch.setattr(s, "download_and_score", lambda path, items, on_downloaded=None: ([None] * len(items), scores))
@@ -145,3 +147,11 @@ def test_the_ranked_preview_uses_the_same_order_as_the_final_results(search):
 
     ranked = [d for kind, d in events if kind == "preview" and d["ranked"]][0]
     assert [p["name"] for p in ranked["best_matches"]] == [p["name"] for p in result["best_matches"]]
+
+
+def test_visual_scoring_is_skipped_by_default(search, monkeypatch):
+    monkeypatch.setattr(s, "VISUAL_RERANK", False)
+    called = []
+    monkeypatch.setattr(s, "download_and_score", lambda *a, **k: called.append(1) or ([], {}))
+    result, _ = search([listing("Casio F-91W Digital Watch", slug="a")], {}, "casio f-91w digital watch")
+    assert not called and result["dupes"] == []
