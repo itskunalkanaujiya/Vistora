@@ -81,8 +81,12 @@ export default function SearchQuota({ refreshKey }) {
         <QuotaRow
           label="Fast photo searches"
           left={fast.searches_left}
-          note="Used first"
-          title="SearchApi.io credits: photo searches in about 5-9 s. When they run out, photo search uses the regular searches below."
+          note={fast.enabled === false ? "Off · saved for demos" : "Used first"}
+          title={
+            fast.enabled === false
+              ? "SearchApi.io credits (about 5-9 s per photo search) are kept for demos. Photo search uses the regular searches below."
+              : "SearchApi.io credits: photo searches in about 5-9 s. When they run out, photo search uses the regular searches below."
+          }
         />
       )}
       <QuotaRow

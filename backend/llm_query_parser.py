@@ -20,6 +20,7 @@ from collections import OrderedDict
 
 import requests
 
+from http_session import reliable_session
 from query_understanding import (
     AUDIENCE,
     COLOURS,
@@ -106,7 +107,7 @@ def looks_like_sentence(query):
 
 
 # Reused connections skip a TLS handshake on every model call.
-_session = requests.Session()
+_session = reliable_session()
 
 
 def chat_json(messages, max_tokens=600, timeout=TIMEOUT_SECONDS, temperature=0, models=None):

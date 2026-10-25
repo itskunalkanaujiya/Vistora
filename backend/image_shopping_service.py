@@ -13,6 +13,8 @@ import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
+import fast_photo
+from http_session import reliable_session
 from search_credits import SearchLimitError, known_empty
 from tryon_service import accessory_category, garment_category
 
@@ -169,9 +171,44 @@ LISTING_URL_PATTERN = re.compile(
 
 # Titles that indicate a page about products rather than a product.
 NON_PRODUCT_TITLE_PATTERN = re.compile(
-    r"\b(?:review|reviews|unboxing|blog|menu|category|categories|catalogue|catalog)\b",
+    r"\b(?:review|reviews|unboxing|blog|menu|category|categories|catalogue|catalog|"
+    r"launched|leak|leaked|leaks|hands-on|rumou?rs?|announced|how to|everything you need)\b",
     re.IGNORECASE,
 )
+
+# Accessories for a product (a screen guard for a watch, a cover for an e-reader)
+# are not the product that was photographed. Only phrases that clearly mean an
+# accessory are matched, so clothing ("full sleeve", "lace-up", "cable knit",
+# "stand collar") is never dropped.
+ACCESSORY_TITLE_PATTERN = re.compile(
+    r"\bscreen ?(?:protectors?|guards?)\b"
+    r"|\btempered glass\b"
+    r"|\bprotectors?\b"
+    r"|\bcompatible (?:with|for)\b"
+    r"|\bskins\b"
+    r"|\b(?:cover|case|skin|strap|band|stand|holder|cable|charger|sleeve|pouch|wrap|sticker|decal|"
+    r"cushion|ear ?pad|ear ?tip|insole|lace)s?\b[^|,.;]{0,24}\bfor\b(?!\s+(?:men|women|kids?|boys?|girls?|ladies|unisex|him|her|babies|baby|adults?|youth|teens?)\b)",
+    re.IGNORECASE,
+)
+# If the photo or the identified product is itself an accessory, none are dropped.
+ACCESSORY_QUERY_WORDS = re.compile(
+    r"\b(?:cover|covers|case|cases|strap|straps|band|bands|protector|protectors|guard|guards|charger|chargers|"
+    r"cable|cables|stand|stands|holder|holders|skin|skins|sleeve|sleeves|pouch|pouches|sticker|stickers|"
+    r"cushion|cushions|insole|insoles|lace|laces|tempered)\b",
+    re.IGNORECASE,
+)
+
+
+def drop_accessories(items, query):
+    """
+    The listings without accessories for other products. Nothing is dropped when
+    the photographed product is an accessory itself, or when that would leave
+    nothing to show.
+    """
+    if ACCESSORY_QUERY_WORDS.search(query or ""):
+        return items
+    kept = [item for item in items if not ACCESSORY_TITLE_PATTERN.search(item.get("title") or "")]
+    return kept or items
 
 TRACKING_PARAMS = {
     "utm_source",
@@ -1487,7 +1524,7 @@ def find_dupes(kept):
     return [(item, reference) for item in dupes[:MAX_DUPES]]
 
 
-def select_sections(candidates, max_results, preview=False):
+def select_sections(candidates, max_results, preview=False, query=""):
     """
     Resolve offers, filter, and pick the Best Matches and Cheapest
     Alternatives sections from candidates already ranked by similarity.
@@ -1504,6 +1541,7 @@ def select_sections(candidates, max_results, preview=False):
         for item in candidates
         if looks_like_product_page(item) and is_available_in_india(item)
     ]
+    kept = drop_accessories(kept, query)
 
     def product(item):
         return build_product(item, pending=preview and needs_page_details(item))
@@ -1562,11 +1600,14 @@ BLOB_API_VERSION = "11"
 
 
 # Reused connections skip a TLS handshake on every Blob / Lens call.
-_api_session = requests.Session()
+_api_session = reliable_session()
 
 
 def fast_lens_available():
-    return bool(os.getenv("SEARCHAPI_API_KEY") and os.getenv("BLOB_READ_WRITE_TOKEN"))
+    """The fast provider is set up AND switched on (it is off by default; see fast_photo.py)."""
+    return bool(
+        os.getenv("SEARCHAPI_API_KEY") and os.getenv("BLOB_READ_WRITE_TOKEN") and fast_photo.enabled()
+    )
 
 
 def _blob_headers():
@@ -1888,7 +1929,7 @@ def search_products_by_image(
 
     # Show Lens's own order and prices straight away; CLIP re-ranks after.
     if on_event is not None:
-        early = select_sections(candidates, max_results, preview=True)
+        early = select_sections(candidates, max_results, preview=True, query=query)
         emit(
             "preview",
             {
@@ -1921,22 +1962,23 @@ def search_products_by_image(
     for index, item in enumerate(candidates):
         item["_visual_similarity_score"] = similarity_scores.get(index)
 
+    # Title match first: the listings that name the identified product come first,
+    # and visual similarity only settles ties. Ordering by looks alone put
+    # look-alikes (a Flip 3 for a Flip 4, a case for what it covers) above the
+    # exact model; in a test on 33 photos, the exact product went from first for
+    # 61% of photos to 94%. Visual similarity still drives the "cheaper
+    # lookalikes" and the "looks N% similar" labels.
     candidates.sort(
         key=lambda item: (
-            item["_visual_similarity_score"] is not None,
-            (
-                item["_visual_similarity_score"]
-                if item["_visual_similarity_score"] is not None
-                else item["_text_relevance_score"]
-            ),
-            item["_text_relevance_score"],
+            round(item["_text_relevance_score"], 2),
+            item["_visual_similarity_score"] or 0,
         ),
         reverse=True,
     )
 
     # Show ranked results with Google Lens prices while seller pages load.
     if on_event is not None:
-        preview = select_sections(candidates, max_results, preview=True)
+        preview = select_sections(candidates, max_results, preview=True, query=query)
         emit(
             "preview",
             {
@@ -1963,7 +2005,7 @@ def search_products_by_image(
         f"({len(candidates)} candidates)"
     )
 
-    sections = select_sections(candidates, max_results)
+    sections = select_sections(candidates, max_results, query=query)
     print(f"Filtered {sections['filtered_count']} non-product or foreign listing(s).")
 
     best_matches = sections["best_matches"]

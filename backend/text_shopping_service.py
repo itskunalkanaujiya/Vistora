@@ -17,6 +17,7 @@ import requests
 
 from llm_query_parser import understand_query
 from query_understanding import parse_query, requirements_score
+from http_session import reliable_session
 from search_credits import SearchLimitError, known_empty
 from tryon_service import accessory_category, garment_category
 from image_shopping_service import (
@@ -220,7 +221,7 @@ def title_key(title):
 
 
 # Reused connections skip a TLS handshake on every search.
-_session = requests.Session()
+_session = reliable_session()
 
 
 def run_google_shopping(query: str) -> list[dict]:

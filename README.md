@@ -259,6 +259,22 @@ host.
 
 ## Keeping search credits from running out
 
+**Fast photo search is off by default.** SearchApi.io credits (5-9 s per photo
+search) do not renew, so photo search uses the renewing SerpApi searches unless
+the fast provider is switched on. Turn it on for a demo, for a few hours (it
+turns itself off again), with `CRON_SECRET` as the password:
+
+```
+curl -X POST https://vistora-api.vercel.app/api/v1/admin/fast-photo \
+  -H "Authorization: Bearer YOUR_CRON_SECRET" -H "Content-Type: application/json" \
+  -d '{"on": true, "hours": 4}'
+```
+
+`{"on": false}` turns it off at once, and a GET to the same address shows the
+state. With the shared cache every server follows the switch within about
+20 seconds; without it, only the server that received the request does.
+`FAST_PHOTO=on` in the environment keeps it on permanently.
+
 Search runs on paid providers (SerpApi, SearchApi.io, Serper.dev), and each
 has a limited number of searches. Three things protect the app:
 

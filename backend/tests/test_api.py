@@ -294,7 +294,7 @@ def test_usage_includes_searchapi_credits(monkeypatch):
     monkeypatch.setattr(main.requests, "get", get)
     main._usage_cache.update(at=0.0, data=None)
     usage = TestClient(main.app).get("/api/v1/usage").json()
-    assert usage["fast_photo"] == {"provider": "searchapi", "searches_left": 96}
+    assert usage["fast_photo"] == {"provider": "searchapi", "searches_left": 96, "enabled": True}
 
 
 def _fast_lens_env(monkeypatch):

@@ -24,6 +24,7 @@ from image_shopping_service import (
     load_clip_model,
     search_products_by_image as search_online_products,
 )
+import fast_photo
 import search_credits
 import shared_cache
 from popular_searches import POPULAR_SEARCHES
@@ -299,7 +300,7 @@ def fetch_searchapi_usage():
     except Exception as exc:
         print(f"Could not read SearchApi usage: {exc}")
         return None
-    return {"provider": "searchapi", "searches_left": left}
+    return {"provider": "searchapi", "searches_left": left, "enabled": fast_photo.enabled()}
 
 
 SERPER_CREDITS_PER_SEARCH = 2  # 40 results per Google Shopping request
@@ -405,6 +406,7 @@ async def usage_status():
     """
     data = await search_usage()
     result = with_cache_health(credit_status(data), await run_in_threadpool(shared_cache.health))
+    result["fast_photo"] = {"on": fast_photo.enabled()}
     if result["status"] != "ok":
         print(f"SEARCH CREDITS {result['status'].upper()}: {'; '.join(result['problems'])}")
         return JSONResponse(status_code=503, content=result)
@@ -944,9 +946,8 @@ def warm_popular_searches(usage=None) -> dict:
     return {"warmed": warmed, "already_cached": already_cached, "failed": failed}
 
 
-@app.get("/api/v1/cron/warm")
-async def warm_cache(request: Request):
-    """Called by Vercel Cron, which sends CRON_SECRET as a bearer token."""
+def require_secret(request: Request):
+    """Admin and cron addresses need CRON_SECRET as a bearer token; without one set they do not exist."""
     secret = os.getenv("CRON_SECRET")
     if not secret:
         raise HTTPException(status_code=404, detail="Not found")
@@ -954,6 +955,36 @@ async def warm_cache(request: Request):
     supplied = request.headers.get("authorization", "")
     if not hmac.compare_digest(supplied.encode(), f"Bearer {secret}".encode()):
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+class FastPhotoSwitch(BaseModel):
+    on: bool
+    hours: float = fast_photo.DEFAULT_HOURS
+
+
+@app.get("/api/v1/admin/fast-photo")
+async def fast_photo_state(request: Request):
+    """Is the fast photo provider switched on? (needs CRON_SECRET)"""
+    require_secret(request)
+    return fast_photo.state()
+
+
+@app.post("/api/v1/admin/fast-photo")
+async def switch_fast_photo(request: Request, body: FastPhotoSwitch):
+    """
+    Switch the fast photo provider on for `hours` (default 4, at most 48), or off.
+    It goes back off by itself, so the limited credits are not used up by accident.
+    """
+    require_secret(request)
+    state = await run_in_threadpool(fast_photo.turn_on, body.hours) if body.on else await run_in_threadpool(fast_photo.turn_off)
+    forget_search_usage()
+    return state
+
+
+@app.get("/api/v1/cron/warm")
+async def warm_cache(request: Request):
+    """Called by Vercel Cron, which sends CRON_SECRET as a bearer token."""
+    require_secret(request)
 
     try:
         usage = await search_usage()  # the credit counts the job checks first

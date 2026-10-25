@@ -9,6 +9,7 @@ from PIL import Image
 # Make the backend modules importable from the tests folder.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import fast_photo  # noqa: E402
 import image_shopping_service  # noqa: E402
 import llm_query_parser  # noqa: E402
 import main  # noqa: E402
@@ -58,6 +59,15 @@ def mockable_http_sessions(monkeypatch):
     monkeypatch.setattr(image_shopping_service, "_api_session", shim)
     monkeypatch.setattr(llm_query_parser, "_session", shim)
     monkeypatch.setattr(text_shopping_service, "_session", shim)
+
+
+@pytest.fixture(autouse=True)
+def fast_photo_on_in_tests(monkeypatch):
+    """The fast provider is off by default in the app; tests of it turn it on (tests of the switch undo this)."""
+    monkeypatch.setenv("FAST_PHOTO", "on")
+    fast_photo.reset()
+    yield
+    fast_photo.reset()
 
 
 @pytest.fixture(autouse=True)
