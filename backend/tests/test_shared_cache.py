@@ -191,6 +191,7 @@ def test_warm_searches_popular_queries_that_are_not_cached(redis, warm):
 
 def test_warm_does_nothing_without_a_shared_cache(monkeypatch):
     monkeypatch.setenv("CRON_SECRET", "s3cret")
+    monkeypatch.setattr(main, "WARM_LIMIT", 3)
     monkeypatch.setattr(main, "search_shopping_text", lambda *a: pytest.fail("must not search"))
 
     assert call_warm().json() == {"skipped": "no shared cache is configured"}
@@ -310,3 +311,53 @@ def test_status_leaves_the_cache_out_when_it_is_not_set_up(monkeypatch):
     response = client.get("/api/v1/usage/status")
 
     assert response.status_code == 200 and "shared_cache" not in response.json()
+
+
+def test_warming_is_off_by_default_so_no_credits_are_spent(redis, monkeypatch):
+    monkeypatch.setenv("CRON_SECRET", "s3cret")
+    monkeypatch.setenv("SERPER_API_KEY", "k")
+    monkeypatch.setattr(main, "search_shopping_text", lambda *a: pytest.fail("must not search"))
+    monkeypatch.setattr(main, "WARM_LIMIT", 0)
+
+    assert call_warm().json() == {"skipped": "WARM_LIMIT is 0"}
+
+
+def test_the_default_for_warming_is_zero():
+    import re
+    source = open(main.__file__, encoding="utf8").read()
+    assert re.search(r'WARM_LIMIT = int\(os\.getenv\("WARM_LIMIT", "0"\)\)', source)
+
+
+def test_saved_results_are_stamped_with_when_they_were_saved():
+    response = {"best_matches": [{"name": "a"}]}
+    before = main.time.time() * 1000
+
+    assert main.cache_if_useful("text:x", response)
+
+    assert before - 1 <= response["saved_at"] <= main.time.time() * 1000 + 1
+    assert main.get_cached_search("text:x")["saved_at"] == response["saved_at"]
+
+
+def test_a_failed_search_is_not_saved_or_stamped():
+    response = {"best_matches": [], "cheapest_alternatives": []}
+
+    assert main.cache_if_useful("text:none", response) is False
+    assert "saved_at" not in response and main.get_cached_search("text:none") is None
+
+
+def test_the_cache_time_is_set_in_hours(monkeypatch):
+    import importlib
+    monkeypatch.setenv("CACHE_TTL_HOURS", "24")
+    reloaded = importlib.reload(main)
+    try:
+        assert reloaded.CACHE_TTL_SECONDS == 24 * 3600
+    finally:
+        monkeypatch.delenv("CACHE_TTL_HOURS")
+        importlib.reload(main)
+
+
+def test_saved_results_last_24_hours_by_default(monkeypatch):
+    import importlib
+    monkeypatch.delenv("CACHE_TTL_HOURS", raising=False)
+    reloaded = importlib.reload(main)
+    assert reloaded.CACHE_TTL_SECONDS == 24 * 3600

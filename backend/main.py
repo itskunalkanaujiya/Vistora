@@ -454,11 +454,12 @@ async def recognize_image(request: Request, file: UploadFile = File(...)):
 # 8. Cache results for repeated searches
 # --------------------------------------------------
 
-# Searching the same photo again is answered from memory: instant, and it
-# does not use another SerpApi search. Results expire after an hour because
-# prices and stock change.
-CACHE_TTL_SECONDS = 60 * 60
-CACHE_MAX_ENTRIES = 100
+# Searching the same photo (or words) again is answered from the cache:
+# instant, and it does not use another search credit. Results expire after
+# CACHE_TTL_HOURS (default 24) because prices and stock change; the results
+# page tells visitors how old a saved result is.
+CACHE_TTL_SECONDS = int(float(os.getenv("CACHE_TTL_HOURS", "24")) * 3600)
+CACHE_MAX_ENTRIES = 300
 
 _search_cache = OrderedDict()
 _search_cache_lock = threading.Lock()
@@ -663,6 +664,8 @@ def cache_if_useful(cache_key, response, ttl_seconds=CACHE_TTL_SECONDS):
     # Outfits: cache when every item's search finished.
     items = response.get("items") or []
     if found or (items and not any(item.get("failed") for item in items)):
+        # When it was saved, in milliseconds: shown as the result's age.
+        response["saved_at"] = int(time.time() * 1000)
         store_cached_search(cache_key, response, ttl_seconds)
         return True
     return False
@@ -879,10 +882,10 @@ async def search_products_by_text_stream(request: Request, body: TextSearchReque
 
 # A daily job (see vercel.json) searches the most-searched queries ahead of
 # time and stores them in the shared cache, so the next shopper gets them at
-# once. Each query it has to search costs one Serper search (2 credits), so
-# WARM_LIMIT caps the queries per run (WARM_LIMIT=0 turns the job off), and it
-# never runs when Serper is low, so visitors keep the credits.
-WARM_LIMIT = int(os.getenv("WARM_LIMIT", "8"))
+# once. Each query it has to search costs one Serper search (2 credits), so it
+# is OFF unless WARM_LIMIT is set above 0, which also caps the queries per run;
+# and it never runs when Serper is low, so visitors keep the credits.
+WARM_LIMIT = int(os.getenv("WARM_LIMIT", "0"))
 WARM_KEEP_SEARCHES = int(os.getenv("WARM_KEEP_SEARCHES", "300"))
 # Longer than a day, so the next run lands before the last results expire.
 WARM_TTL_SECONDS = int(os.getenv("WARM_TTL_SECONDS", str(26 * 60 * 60)))

@@ -300,8 +300,9 @@ A daily Vercel Cron job (`/api/v1/cron/warm`, 07:00 India time, set in
 time, filling up with the seed list in `backend/popular_searches.py`, and keeps
 them for 26 hours. Set `CRON_SECRET` in Vercel (any long random string) so only
 the cron can call it. Each query it has to search costs one Serper search
-(2 credits): `WARM_LIMIT` (default 8) caps the queries per run, `WARM_LIMIT=0`
-turns the job off, and it skips the run when Serper has fewer than
+(2 credits), so the job is **off by default**: set `WARM_LIMIT` above 0 in Vercel
+(for example 4) to turn it on and cap the queries per run. It skips the run when
+Serper has fewer than
 `WARM_KEEP_SEARCHES` (default 300) searches left. Warmed prices can be up to a
 day old.
 
@@ -323,7 +324,7 @@ day old.
 ## Notes
 
 - Each search uses one SerpApi search (two if Google Lens returns nothing and
-  Vistora retries). Identical photos are served from a one-hour cache.
+  Vistora retries). Identical photos and searches are served from a cache for `CACHE_TTL_HOURS` (default 24) hours, and the results page says how old a saved result is.
 - To protect your SerpApi quota, each client (IP address) can run 10 uncached
   searches per 10 minutes; further searches get HTTP 429 with a `Retry-After`
   header. Change this with `SEARCH_LIMIT` and `SEARCH_WINDOW_SECONDS` in

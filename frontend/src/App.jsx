@@ -100,9 +100,16 @@ const TRY_ON_EXAMPLES = [
 const STAGE = { uploading: 0, identifying: 1, ranking: 2, checking: 3 };
 
 // kind: "photo" (Google Lens + CLIP) or "text" (Google Shopping).
+// A saved (cached) result younger than this is shown as fresh.
+const FRESH_RESULT_MS = 30 * 60 * 1000;
+
 function toResults(data, kind = "photo") {
+  const savedAt = Number(data.saved_at);
   return {
     kind,
+    // An older saved result says how old it is, and offers a new search.
+    restoredAt:
+      data.cached && Number.isFinite(savedAt) && Date.now() - savedAt > FRESH_RESULT_MS ? savedAt : undefined,
     query: data.online_search_query || "",
     understood: Array.isArray(data.understood) ? data.understood : null,
     bestMatches: Array.isArray(data.best_matches) ? data.best_matches : [],
