@@ -14,19 +14,8 @@ dependencies = [
     "beautifulsoup4==4.15.0",
     "python-dotenv==1.2.4",
     "gradio_client==2.7.2",
-    "torch==2.14.1",
-    "transformers==5.19.0",
+    "onnxruntime==1.31.0",
 ]
-
-# Install the CPU-only PyTorch build; the default one bundles ~2 GB of CUDA
-# libraries that a serverless CPU function cannot use.
-[tool.uv.sources]
-torch = [{ index = "pytorch-cpu" }]
-
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
 
 [tool.vercel]
 entrypoint = "main:app"
