@@ -38,13 +38,16 @@ try:
 except ImportError:
     pass
 
+CLIP_ERROR = None
+
 try:
     import numpy as np
     import onnxruntime
 
     CLIP_AVAILABLE = Image is not None
-except ImportError:
-    pass
+except Exception as exc:  # a missing wheel, or a native library that will not load
+    CLIP_ERROR = f"{type(exc).__name__}: {exc}"
+    print(f"CLIP unavailable ({CLIP_ERROR}); ranking by title and Lens order.")
 
 
 # --------------------------------------------------
@@ -671,8 +674,22 @@ def load_clip_model():
         except Exception as exc:
             _clip_model = None
             _clip_processor = None
+            CLIP_STATE["error"] = f"{type(exc).__name__}: {exc}"
             print(f"Could not load CLIP; using title ranking: {exc}")
             return None, None
+
+
+CLIP_STATE = {"error": None}
+
+
+def clip_state():
+    """Whether CLIP is usable here, loading it if needed (for the status check)."""
+    model, _ = load_clip_model()
+    return {
+        "enabled": ENABLE_CLIP_RANKING,
+        "ready": model is not None,
+        "error": CLIP_ERROR or CLIP_STATE["error"],
+    }
 
 
 # One connection pool for thumbnails: most come from the same few image

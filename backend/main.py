@@ -20,6 +20,7 @@ from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel
 
 from image_shopping_service import (
+    clip_state,
     identify_product,
     search_products_by_image as search_online_products,
 )
@@ -403,6 +404,7 @@ async def usage_status():
     data = await search_usage()
     result = with_cache_health(credit_status(data), await run_in_threadpool(shared_cache.health))
     result["fast_photo"] = {"on": fast_photo.enabled()}
+    result["clip"] = await run_in_threadpool(clip_state)
     if result["status"] != "ok":
         print(f"SEARCH CREDITS {result['status'].upper()}: {'; '.join(result['problems'])}")
         return JSONResponse(status_code=503, content=result)
