@@ -10609,3 +10609,39 @@ body {
     height: 84px;
   }
 }
+
+/* ---------- Layout fixes: every photo tool in one row, and an even tool grid ---------- */
+
+/* Six photo tools and the gift button sit in a single row. */
+.purpose-cards {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+/* Too narrow for seven cards: one swipeable row instead of wrapping. */
+@media (max-width: 1000px) {
+  .purpose-cards {
+    margin-right: -6px;
+    margin-left: -6px;
+    padding: 4px 6px 10px;
+    overflow-x: auto;
+    gap: 10px;
+    grid-auto-columns: 142px;
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .purpose-cards::-webkit-scrollbar {
+    display: none;
+  }
+
+  .purpose-card {
+    scroll-snap-align: start;
+  }
+}
+
+/* The last tool would sit alone in its row, so it spans the full width. */
+.tool-bento li:last-child {
+  grid-column: span 12;
+}

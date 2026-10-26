@@ -133,7 +133,7 @@ function HowItWorks() {
 
 // Facts about Vistora, counted up when the band scrolls into view.
 const STATS = [
-  { value: 10, label: "AI shopping tools", tone: "violet" },
+  { value: 11, label: "AI shopping tools", tone: "violet" },
   { value: 40, label: "listings checked per search", tone: "pink" },
   { value: 3, label: "languages: English, Hindi, Hinglish", tone: "amber" },
   { value: 0, prefix: "₹", label: "to use, no sign-up", tone: "teal" },

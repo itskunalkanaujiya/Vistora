@@ -90,7 +90,7 @@ const PURPOSE_TOOLS = Object.fromEntries(Object.entries(PHOTO_TOOLS).map(([tool,
 const FOOTER_LINKS = [
   { title: "Shop", keys: ["photo", "list", "plan", "gift"] },
   { title: "Style", keys: ["outfit", "rate", "colours", "tryon"] },
-  { title: "More", keys: ["room", "watch"] },
+  { title: "More", keys: ["pick", "room", "watch"] },
 ];
 
 // Try it on: example searches whose results can be tried on.
