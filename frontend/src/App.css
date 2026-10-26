@@ -10645,3 +10645,38 @@ body {
 .tool-bento li:last-child {
   grid-column: span 12;
 }
+
+/* ---------- Compact photo tool tabs ---------- */
+
+.purpose-card {
+  padding: 10px 8px 10px;
+  border-radius: 16px;
+  gap: 2px;
+}
+
+.purpose-art {
+  width: 42px;
+  height: 42px;
+  margin-bottom: 4px;
+  border-radius: 14px;
+}
+
+.purpose-art .emoji-3d {
+  width: 28px !important;
+  height: 28px !important;
+}
+
+.purpose-card strong {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+/* The one-line hint is on the page below the tabs; the tabs stay short. */
+.purpose-card small {
+  display: none;
+}
+
+.purpose-tick {
+  top: 6px;
+  right: 6px;
+}
