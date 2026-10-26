@@ -4,6 +4,7 @@
 export const TOOL_LIST = [
   { key: "photo", icon: "camera", art: "camera", tone: "violet", featured: true, title: "Search by photo", text: "Snap or upload a product; see every store and the cheapest price." },
   { key: "outfit", icon: "shirt", art: "dress", tone: "pink", featured: true, title: "Find the outfit", text: "Shop every item someone is wearing in a photo." },
+  { key: "pick", icon: "scan", art: "target", tone: "teal", title: "Tap any item", text: "Snap a desk, shelf or scene, then tap the one thing you want to buy.", featured: false },
   { key: "plan", icon: "tag", art: "target", tone: "amber", featured: true, title: "Plan a look on a budget", text: "A complete outfit for any occasion that fits your budget." },
   { key: "gift", icon: "heart", art: "gift", tone: "rose", featured: true, title: "Find a gift", text: "Six thoughtful gift ideas for anyone, at any budget." },
   { key: "rate", icon: "star", art: "star", tone: "orange", title: "Rate my outfit", text: "A style score out of 10, with tips you can shop." },

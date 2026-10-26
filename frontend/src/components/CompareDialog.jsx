@@ -4,7 +4,7 @@ import { compareProducts } from "../lib/assistant.js";
 import { formatPrice, getProductId } from "../lib/products.js";
 
 /** The products picked for comparison, at the bottom of the screen. */
-export function CompareBar({ products, onCompare, onRemove, onClear }) {
+export function CompareBar({ products, onCompare, onAsk, onRemove, onClear }) {
   if (!products.length) return null;
   const ready = products.length >= 2;
 
@@ -27,6 +27,12 @@ export function CompareBar({ products, onCompare, onRemove, onClear }) {
       <button type="button" className="button button-ghost button-sm" onClick={onClear}>
         Clear
       </button>
+      {onAsk && (
+        <button type="button" className="button button-secondary button-sm" onClick={onAsk} disabled={!ready}>
+          <Icon name="heart" size={15} />
+          Ask my family
+        </button>
+      )}
       <button type="button" className="button button-primary button-sm" onClick={onCompare} disabled={!ready}>
         <Icon name="layers" size={15} />
         Compare

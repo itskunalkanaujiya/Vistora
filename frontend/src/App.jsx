@@ -25,6 +25,7 @@ import {
   writeHistory,
 } from "./lib/history.js";
 import { cropToFile, prepareForUpload } from "./lib/resizeImage.js";
+import { fetchPhotoItems } from "./lib/pickItems.js";
 import {
   streamGifts,
   streamList,
@@ -38,6 +39,8 @@ import {
 } from "./lib/searchStream.js";
 import CompareDialog, { CompareBar } from "./components/CompareDialog.jsx";
 import PlanPanel from "./components/PlanPanel.jsx";
+import PickView from "./components/PickView.jsx";
+import AskFamilyDialog from "./components/AskFamilyDialog.jsx";
 import GiftPanel from "./components/GiftPanel.jsx";
 import PriceWatch from "./components/PriceWatch.jsx";
 import {
@@ -80,7 +83,7 @@ function readSaved() {
 }
 
 // Tools whose input is a photo, and the purpose each sets on the photo page.
-const PHOTO_TOOLS = { photo: "product", outfit: "outfit", rate: "rate", room: "room", list: "list" };
+const PHOTO_TOOLS = { photo: "product", outfit: "outfit", pick: "pick", rate: "rate", room: "room", list: "list" };
 const PURPOSE_TOOLS = Object.fromEntries(Object.entries(PHOTO_TOOLS).map(([tool, purpose]) => [purpose, tool]));
 
 // The footer's links to every tool.
@@ -174,6 +177,11 @@ export default function App() {
   // from ({ results, filters }), or the outfit an "Exact match" search
   // was started from ({ outfit }).
   const [returnTo, setReturnTo] = useState(null);
+  // "Tap any item": { file, photoUrl, items } while the visitor is choosing an item.
+  const [picker, setPicker] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
+  // The picks being sent to family to vote on.
+  const [asking, setAsking] = useState(null);
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [saved, setSaved] = useState(readSaved);
   // "Colours that suit you": the palette from a selfie, kept in this browser.
@@ -372,6 +380,7 @@ export default function App() {
 
   // Use a (possibly cropped) image for the next search.
   function showImage(nextFile) {
+    setPicker(null);
     setFile(nextFile);
     setPreviewUrl(URL.createObjectURL(nextFile));
     setResults(null);
@@ -494,6 +503,7 @@ export default function App() {
   // dialog.
   function openTool(key) {
     setError("");
+    setPicker(null);
     if (key === "watch") {
       setView("saved");
     } else if (key === "colours") {
@@ -517,6 +527,7 @@ export default function App() {
   // Back to the home page: the search box and every tool.
   function goHome() {
     setView("discover");
+    setPicker(null);
     setTool(null);
     setResults(null);
     setOutfit(null);
@@ -536,6 +547,7 @@ export default function App() {
   // The photo page's main button, for the chosen purpose.
   function runPhoto(chosen) {
     if (chosen === "outfit") findOutfit();
+    else if (chosen === "pick") scanItems();
     else if (chosen === "rate") rateOutfit();
     else if (chosen === "room") shopRoom();
     else if (chosen === "list") shopList();
@@ -637,6 +649,50 @@ export default function App() {
         setIsComplete(false);
       }
     }
+  }
+
+  // Find every item in the photo and let the visitor tap the one to search.
+  async function scanItems(sourceFile = file) {
+    if (!sourceFile) {
+      setError("Please upload a photo first.");
+      return;
+    }
+
+    setError("");
+    setResults(null);
+    setOutfit(null);
+    setReturnTo(null);
+    setPicker(null);
+    setIsScanning(true);
+    try {
+      const { items } = await fetchPhotoItems(await prepareForUpload(sourceFile));
+      setPicker({ file: sourceFile, photoUrl: URL.createObjectURL(sourceFile), items });
+      scrolledRef.current = false;
+    } catch (scanError) {
+      setError(scanError.message);
+    } finally {
+      setIsScanning(false);
+    }
+  }
+
+  // Search one tapped item by photo (Google Lens on its crop), keeping the
+  // photo to come back to.
+  async function searchPickedItem(item) {
+    if (!picker || isSearching) return;
+
+    let itemFile;
+    try {
+      itemFile = await cropToFile(picker.photoUrl, item.box, `${item.type || "item"}.jpg`);
+    } catch (cropError) {
+      setError(cropError.message);
+      return;
+    }
+    const returnPoint = { picker };
+    setPicker(null);
+    showImage(itemFile);
+    setTool("photo");
+    setPurpose("product");
+    await search(undefined, itemFile, returnPoint);
   }
 
   // Identify everything the person in the photo wears and shop each item.
@@ -754,6 +810,12 @@ export default function App() {
 
   function goBack() {
     if (!returnTo) return;
+    if (returnTo.picker) {
+      setFile(returnTo.picker.file);
+      setPreviewUrl(URL.createObjectURL(returnTo.picker.file));
+      setPicker(returnTo.picker);
+      setPurpose("pick");
+    }
     setOutfit(returnTo.outfit || null);
     setResults(returnTo.results || null);
     setFilters(returnTo.filters || DEFAULT_FILTERS);
@@ -1063,7 +1125,7 @@ export default function App() {
                         setError("");
                       }}
                       onRun={runPhoto}
-                      isBusy={isFindingOutfit}
+                      isBusy={isFindingOutfit || isScanning}
                       onTypedList={(text) => shopList({ text })}
                       onOpenTool={openTool}
                     />
@@ -1137,6 +1199,25 @@ export default function App() {
             <div ref={resultsRef} className="results-anchor" />
 
             {isSearching && !results && <ResultsLoading />}
+
+            {picker && !results && !outfit && !isSearching && (
+              <PickView
+                photoUrl={picker.photoUrl}
+                items={picker.items}
+                busy={isScanning}
+                onPick={searchPickedItem}
+                onRescan={() => scanItems(picker.file)}
+              />
+            )}
+
+            {results && returnTo?.picker && !isSearching && (
+              <div className="container">
+                <button type="button" className="button button-ghost button-sm outfit-back" onClick={goBack}>
+                  <Icon name="undo" size={15} />
+                  Back to the photo
+                </button>
+              </div>
+            )}
 
             {outfit && (
               <OutfitView
@@ -1346,9 +1427,12 @@ export default function App() {
         <CompareDialog products={comparing} query={results?.query || ""} onClose={closeCompare} />
       )}
 
+      {asking && <AskFamilyDialog products={asking} onClose={() => setAsking(null)} />}
+
       <CompareBar
         products={compareList}
         onCompare={() => setComparing(compareList)}
+        onAsk={() => setAsking(compareList)}
         onRemove={compareValue.toggle}
         onClear={() => setCompareList([])}
       />

@@ -36,6 +36,8 @@ from outfit_service import OutfitError, complete_the_look, find_outfit
 from style_service import analyse_colours, rate_outfit
 from assistant_service import AssistantError, ask_assistant, compare_products
 from room_service import find_room
+from pick_service import identify_pickable
+from board_service import BoardError, create_board, public_board, read_board, vote
 from planner_service import PlanError, plan_look, read_budget
 from gift_service import find_gifts
 from list_service import shop_list
@@ -1348,6 +1350,81 @@ async def shop_the_room_stream(request: Request, file: UploadFile = File(...)):
         run=lambda emit: find_room(image, on_event=emit),
         shape=lambda room: room,
     )
+
+
+# --------------------------------------------------
+# Ask my family: a board the family votes on
+# --------------------------------------------------
+
+_board_log = {}
+_vote_log = {}
+BOARD_LIMIT = int(os.getenv("BOARD_LIMIT", "10"))
+VOTE_LIMIT = int(os.getenv("VOTE_LIMIT", "60"))
+
+
+class BoardRequest(BaseModel):
+    title: str = ""
+    items: list[dict]
+
+
+class VoteRequest(BaseModel):
+    voter: str
+    option: int
+
+
+def board_response(call):
+    try:
+        return call()
+    except BoardError as exc:
+        raise HTTPException(status_code=exc.status, detail=str(exc))
+
+
+@app.post("/api/v1/boards")
+async def make_board(request: Request, body: BoardRequest):
+    """Save 2-4 products as a board and return its id; the link is /?board=<id>."""
+    enforce_limit(request, _board_log, BOARD_LIMIT, SEARCH_WINDOW_SECONDS, "shared boards")
+    board_id = await run_in_threadpool(board_response, lambda: create_board(body.title, body.items))
+    return {"id": board_id}
+
+
+@app.get("/api/v1/boards/{board_id}")
+async def get_board(board_id: str, voter: str | None = None):
+    """The board, its vote counts, and (given the voter's id) that voter's own choice."""
+    board = await run_in_threadpool(board_response, lambda: read_board(board_id))
+    return public_board(board, voter)
+
+
+@app.post("/api/v1/boards/{board_id}/vote")
+async def vote_on_board(request: Request, board_id: str, body: VoteRequest):
+    enforce_limit(request, _vote_log, VOTE_LIMIT, SEARCH_WINDOW_SECONDS, "votes")
+    return await run_in_threadpool(board_response, lambda: vote(board_id, body.voter, body.option))
+
+
+# --------------------------------------------------
+# Tap any item in a photo
+# --------------------------------------------------
+
+# One vision call and no search credit, so a looser limit than a search.
+_pick_log = {}
+PICK_LIMIT = int(os.getenv("PICK_LIMIT", "20"))
+
+
+@app.post("/api/v1/photo/items")
+async def photo_items(request: Request, file: UploadFile = File(...)):
+    """
+    The products in any photo, each with a box, so the visitor can tap the one
+    they want (which is then searched like any photo). Searches nothing itself.
+    """
+    image = await read_uploaded_image(file)
+    enforce_limit(request, _pick_log, PICK_LIMIT, SEARCH_WINDOW_SECONDS, "photo scans")
+
+    try:
+        return await run_in_threadpool(identify_pickable, image)
+    except OutfitError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        print(f"Tap-an-item scan failed: {exc}")
+        raise HTTPException(status_code=502, detail="Couldn't scan this photo. Please try again.")
 
 
 # --------------------------------------------------

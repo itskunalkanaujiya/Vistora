@@ -8,7 +8,7 @@ export default function ToolGrid({ onOpen }) {
   return (
     <section className="tool-hub container" aria-labelledby="tool-hub-title">
       <div className="tool-hub-head">
-        <span className="tool-hub-kicker">10 ways to shop smarter</span>
+        <span className="tool-hub-kicker">{TOOL_LIST.length} ways to shop smarter</span>
         <h2 id="tool-hub-title">What would you like to do?</h2>
       </div>
       <ul className="tool-bento">

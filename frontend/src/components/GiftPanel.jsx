@@ -22,13 +22,13 @@ export default function GiftPanel({ onFind, isFinding, error }) {
 
   // The request the AI reads: the chips plus whatever was typed.
   const request = [
-    occasion && occasion !== "Just because" ? `${occasion} gift` : "Gift",
-    person && `for my ${person.toLowerCase()}`,
+    occasion.trim() && occasion !== "Just because" ? `${occasion.trim()} gift` : "Gift",
+    person.trim() && `for my ${person.trim().toLowerCase()}`,
     about.trim(),
   ]
     .filter(Boolean)
     .join(", ");
-  const ready = Boolean(person || about.trim().length >= 3);
+  const ready = Boolean(person.trim() || about.trim().length >= 3);
 
   function submit(next) {
     if (next) {
@@ -61,6 +61,14 @@ export default function GiftPanel({ onFind, isFinding, error }) {
               {name}
             </button>
           ))}
+          <input
+            className="gift-other"
+            value={PEOPLE.includes(person) ? "" : person}
+            onChange={(event) => setPerson(event.target.value)}
+            placeholder="Someone else? Type here"
+            aria-label="Who it's for, if not listed"
+            maxLength={30}
+          />
         </div>
 
         <span className="plan-label">Occasion</span>
@@ -76,6 +84,14 @@ export default function GiftPanel({ onFind, isFinding, error }) {
               {name}
             </button>
           ))}
+          <input
+            className="gift-other"
+            value={OCCASIONS.includes(occasion) ? "" : occasion}
+            onChange={(event) => setOccasion(event.target.value)}
+            placeholder="Another occasion? Type here"
+            aria-label="Occasion, if not listed"
+            maxLength={30}
+          />
         </div>
 
         <div className="plan-row">

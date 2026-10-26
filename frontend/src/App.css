@@ -10367,3 +10367,245 @@ body {
 .like-banner button {
   margin-left: auto;
 }
+
+/* ---------- Gift finder: type your own person or occasion ---------- */
+
+.gift-chips .gift-other {
+  flex: 1 1 190px;
+  min-width: 170px;
+  max-width: 260px;
+  padding: 7px 14px;
+  border: 1px dashed var(--border-strong, rgba(127, 127, 127, 0.45));
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+
+.gift-chips .gift-other:focus {
+  border-style: solid;
+  outline: 2px solid var(--primary, #6d5dfc);
+  outline-offset: 1px;
+}
+
+/* ---------- Tap any item ---------- */
+
+.pick-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.pick-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.pick-photo {
+  max-width: 560px;
+}
+
+.pick-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  gap: 10px;
+  list-style: none;
+}
+
+.pick-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
+  border-radius: 14px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  gap: 12px;
+  text-align: left;
+}
+
+.pick-row:hover:not(:disabled) {
+  border-color: var(--primary, #6d5dfc);
+}
+
+.pick-row-text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+}
+
+.pick-row-text small {
+  color: var(--text-2);
+}
+
+.pick-row-go {
+  display: inline-flex;
+  align-items: center;
+  color: var(--primary-text, inherit);
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+}
+
+@media (max-width: 760px) {
+  .pick-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Ask my family ---------- */
+
+.family-modal {
+  max-width: 520px;
+}
+
+.family-body {
+  display: grid;
+  padding: 4px 22px 22px;
+  gap: 14px;
+}
+
+.family-picks {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  gap: 8px;
+  list-style: none;
+}
+
+.family-picks li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.family-picks img {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.family-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.family-note {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.board-page {
+  max-width: 760px;
+  padding-top: 24px;
+  padding-bottom: 60px;
+}
+
+.board-home {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 18px;
+  color: var(--primary-text, inherit);
+  font-weight: 700;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.board-page h1 {
+  margin: 0 0 4px;
+}
+
+.board-sub,
+.board-status {
+  margin: 0 0 20px;
+  color: var(--text-2);
+}
+
+.board-options {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  gap: 14px;
+  list-style: none;
+}
+
+.board-option {
+  display: flex;
+  padding: 14px;
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
+  border-radius: 18px;
+  gap: 14px;
+}
+
+.board-option.is-mine {
+  border-color: var(--primary, #6d5dfc);
+}
+
+.board-option.is-leading {
+  box-shadow: 0 0 0 2px var(--primary, #6d5dfc) inset;
+}
+
+.board-option img {
+  width: 110px;
+  height: 110px;
+  flex: none;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.board-option-body {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 6px;
+}
+
+.board-option h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.board-option p {
+  margin: 0;
+}
+
+.board-bar {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.2);
+}
+
+.board-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary, #6d5dfc);
+  transition: width 0.4s ease;
+}
+
+.board-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 520px) {
+  .board-option img {
+    width: 84px;
+    height: 84px;
+  }
+}
