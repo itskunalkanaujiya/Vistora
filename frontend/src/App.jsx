@@ -63,6 +63,7 @@ import {
   formatAmount,
   getNumericPrice,
   getProductId,
+  warmUpServer,
 } from "./lib/products.js";
 
 const SAVED_KEY = "vistora-wishlist";
@@ -254,6 +255,10 @@ export default function App() {
     }
     return null;
   }, [results, outfit]);
+
+  useEffect(() => {
+    warmUpServer();
+  }, []);
 
   useEffect(() => {
     try {

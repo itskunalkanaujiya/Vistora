@@ -16,6 +16,7 @@ class FakeRedis:
     def __init__(self):
         self.data = {}
         self.scores = {}
+        self.hashes = {}
         self.commands = []
         self.fail = False
 
@@ -33,6 +34,12 @@ class FakeRedis:
         elif name == "ZINCRBY":
             self.scores[args[2]] = self.scores.get(args[2], 0) + args[1]
             result = str(self.scores[args[2]])
+        elif name == "HINCRBY":
+            fields = self.hashes.setdefault(args[0], {})
+            fields[args[1]] = fields.get(args[1], 0) + args[2]
+            result = fields[args[1]]
+        elif name == "HGETALL":
+            result = [item for pair in self.hashes.get(args[0], {}).items() for item in pair]
         elif name == "ZREVRANGE":
             ranked = sorted(self.scores, key=self.scores.get, reverse=True)
             result = ranked[: args[2] + 1]
@@ -361,3 +368,42 @@ def test_saved_results_last_24_hours_by_default(monkeypatch):
     monkeypatch.delenv("CACHE_TTL_HOURS", raising=False)
     reloaded = importlib.reload(main)
     assert reloaded.CACHE_TTL_SECONDS == 24 * 3600
+
+
+def test_cache_outcomes_are_counted_and_summarised(redis):
+    for kind in ("memory_hit", "memory_hit", "shared_hit", "miss"):
+        shared_cache.record(kind)
+    shared_cache.record("nonsense")
+
+    stats = shared_cache.stats()
+
+    assert stats["today"] == {"memory_hit": 2, "shared_hit": 1, "miss": 1, "searches": 4, "hit_rate": 0.75}
+    assert stats["week"]["searches"] == 4
+    assert any(c[0] == "EXPIRE" for c in redis.commands)
+
+
+def test_stats_are_none_without_a_shared_cache_and_rate_is_none_when_empty(redis, monkeypatch):
+    assert shared_cache.stats()["today"]["hit_rate"] is None
+    monkeypatch.delenv("UPSTASH_REDIS_REST_URL")
+    assert shared_cache.stats() is None
+    shared_cache.record("miss")  # does nothing, and does not fail
+
+
+def test_a_cache_lookup_is_counted(redis):
+    main._search_cache.clear()
+    assert main.get_cached_search("never-searched") is None
+    main.store_cached_search("searched", {"best_matches": [1]})
+    assert main.get_cached_search("searched") == {"best_matches": [1]}
+
+    today = shared_cache.stats()["today"]
+    assert today["miss"] == 1 and today["memory_hit"] == 1
+
+
+def test_ping_warms_the_model_and_costs_nothing(monkeypatch):
+    loaded = []
+    monkeypatch.setattr(main, "load_clip_model", lambda: loaded.append(1) or (object(), object()))
+
+    response = client.get("/api/v1/ping")
+
+    assert response.status_code == 200 and response.json() == {"ok": True, "clip": True}
+    assert loaded == [1]

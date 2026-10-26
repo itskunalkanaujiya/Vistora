@@ -15,8 +15,9 @@ from dotenv import load_dotenv
 
 import fast_photo
 from http_session import reliable_session
+from colour_match import colour_mismatch, photo_colours
 from search_credits import SearchLimitError, known_empty
-from tryon_service import accessory_category, garment_category
+from tryon_service import accessory_category, garment_category, is_public_host
 
 # CLIP ViT-B/32 image encoder run with ONNX Runtime (no PyTorch): it loads in a
 # second or two, so a search never waits on a heavy start-up. Set
@@ -700,7 +701,7 @@ _thumbnail_session.mount(
 )
 
 
-def download_thumbnail(url):
+def download_thumbnail(url, follow_redirects=True):
     if not isinstance(url, str) or not url.strip():
         return None
 
@@ -710,7 +711,8 @@ def download_thumbnail(url):
             return None
 
         with _thumbnail_session.get(
-            url, headers=REQUEST_HEADERS, timeout=THUMBNAIL_TIMEOUT, stream=True
+            url, headers=REQUEST_HEADERS, timeout=THUMBNAIL_TIMEOUT, stream=True,
+            allow_redirects=follow_redirects,
         ) as response:
             response.raise_for_status()
 
@@ -780,6 +782,55 @@ def open_query_image(image_path):
         query_image = image.convert("RGB")
         query_image.load()
         return query_image
+
+
+MAX_LIKE_CANDIDATES = 40
+
+
+def public_image_url(url):
+    """True for an http(s) link to a public host (never an internal address)."""
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return False
+    return (
+        isinstance(url, str)
+        and parsed.scheme in {"http", "https"}
+        and bool(parsed.hostname)
+        and is_public_host(parsed.hostname)
+    )
+
+
+def similarity_to_reference(reference_url, urls):
+    """
+    How much each listing photo looks like the reference listing's photo:
+    {url: cosine similarity}. Costs no search credit. The links come from the
+    caller, so only public hosts are fetched, without following redirects.
+    """
+    model, processor = load_clip_model()
+    if model is None or not public_image_url(reference_url):
+        return {}
+
+    unique = list(dict.fromkeys(u for u in urls[:MAX_LIKE_CANDIDATES] if public_image_url(u)))
+    links = [reference_url] + [u for u in unique if u != reference_url]
+    with ThreadPoolExecutor(max_workers=THUMBNAIL_WORKERS) as pool:
+        images = list(pool.map(lambda link: download_thumbnail(link, follow_redirects=False), links))
+
+    if images[0] is None:
+        return {}
+    loaded = [(link, image) for link, image in zip(links, images) if image is not None]
+    features = encode_images(model, processor, [image for _, image in loaded])
+    similarities = features[1:] @ features[0]
+    return {link: round(float(score), 4) for (link, _), score in zip(loaded[1:], similarities.tolist())}
+
+
+def photo_colour_names(image_path):
+    """The photo's main colours, or an empty set when it cannot be read."""
+    try:
+        return photo_colours(open_query_image(image_path))
+    except Exception as exc:
+        print(f"Could not read the photo's colours: {exc}")
+        return set()
 
 
 def download_and_score(image_path, candidates, deadline=THUMBNAIL_DEADLINE, on_downloaded=None):
@@ -2026,9 +2077,16 @@ def search_products_by_image(
     # well as the orange one in the photo), so listings within TITLE_BUCKET of
     # each other count as tied and keep Google Lens's own order, which is its
     # visual match. A stable sort keeps that order among ties.
+    # A listing whose title names only colours that are not in the photo (a
+    # green frock for an orange one) goes below equally good ones.
+    photo_palette = photo_colour_names(image_path)
+    for item in candidates:
+        item["_colour_mismatch"] = colour_mismatch(item.get("title"), photo_palette)
+
     candidates.sort(
         key=lambda item: (
             round(item["_text_relevance_score"] / TITLE_BUCKET),
+            not item["_colour_mismatch"],
             item["_visual_similarity_score"] or 0,
         ),
         reverse=True,

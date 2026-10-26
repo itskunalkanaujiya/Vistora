@@ -135,3 +135,54 @@ def top_queries(limit):
     queries = command("ZREVRANGE", KEY_PREFIX + POPULAR_KEY, 0, limit - 1) or []
     command("ZREMRANGEBYRANK", KEY_PREFIX + POPULAR_KEY, 0, -(POPULAR_KEEP + 1))
     return [query for query in queries if isinstance(query, str)]
+
+
+# --------------------------------------------------
+# Cache statistics: how many searches the cache answered
+# --------------------------------------------------
+
+STATS_KEEP_DAYS = 10
+STATS_KINDS = ("memory_hit", "shared_hit", "miss")
+
+
+def _day(offset=0):
+    return time.strftime("%Y-%m-%d", time.gmtime(time.time() - offset * 86400))
+
+
+def record(kind):
+    """Count one cache outcome ("memory_hit", "shared_hit" or "miss") for today, in the background."""
+    if kind in STATS_KINDS and enabled():
+        _writes.submit(_count, kind)
+
+
+def _count(kind):
+    key = f"{KEY_PREFIX}stats:{_day()}"
+    command("HINCRBY", key, kind, 1)
+    command("EXPIRE", key, STATS_KEEP_DAYS * 86400)
+
+
+def stats(days=7):
+    """
+    Cache outcomes for today and the last `days` days, or None when the shared
+    cache is not set up. {"today": {...}, "week": {...}} with the three counts,
+    "searches" and "hit_rate" (None when there were no searches).
+    """
+    if not enabled():
+        return None
+
+    def read(offset):
+        raw = command("HGETALL", f"{KEY_PREFIX}stats:{_day(offset)}") or []
+        if isinstance(raw, list):
+            pairs = dict(zip(raw[0::2], raw[1::2]))
+        else:
+            pairs = raw if isinstance(raw, dict) else {}
+        return {kind: int(pairs.get(kind, 0)) for kind in STATS_KINDS}
+
+    def summarise(rows):
+        total = {kind: sum(row[kind] for row in rows) for kind in STATS_KINDS}
+        searches = sum(total.values())
+        hits = total["memory_hit"] + total["shared_hit"]
+        return {**total, "searches": searches, "hit_rate": round(hits / searches, 3) if searches else None}
+
+    rows = [read(offset) for offset in range(days)]
+    return {"today": summarise(rows[:1]), "week": summarise(rows)}

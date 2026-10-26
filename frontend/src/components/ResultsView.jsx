@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import Icon from "./Icon.jsx";
 import { formatTimeAgo } from "../lib/history.js";
 import ProductCard, { ProductCardSkeleton } from "./ProductCard.jsx";
+import { fetchSimilarity, reorderByRefs } from "../lib/similar.js";
 import { computeDeals } from "../lib/deals.js";
 import { usePalette } from "../lib/palette.js";
 import {
@@ -95,7 +96,7 @@ function Toolbar({ filters, onChange, stores, shownCount, totalCount, hasMatchSc
   );
 }
 
-function Section({ icon, title, subtitle, products, savedIds, onToggleSave, onTryOn, onCompleteLook, highlightFirst, deals, className = "" }) {
+function Section({ icon, title, subtitle, products, savedIds, onToggleSave, onTryOn, onCompleteLook, highlightFirst, deals, similarFor, className = "" }) {
   if (!products.length) return null;
 
   return (
@@ -122,6 +123,7 @@ function Section({ icon, title, subtitle, products, savedIds, onToggleSave, onTr
             onCompleteLook={onCompleteLook}
             highlight={highlightFirst && index === 0 ? highlightFirst : null}
             deal={deals?.get(getProductId(product))}
+            similar={similarFor?.(product)}
           />
         ))}
       </div>
@@ -221,6 +223,11 @@ export default function ResultsView({
   onCompleteLook,
 }) {
   const [isRefining, setIsRefining] = useState(false);
+  // Listings the visitor picked ("More like this" / "Not this"), each with how
+  // much every listing photo looks like it. Free: no search credit is used.
+  const [refs, setRefs] = useState([]);
+  const [likeBusy, setLikeBusy] = useState(false);
+  const [likeError, setLikeError] = useState("");
 
   const allProducts = useMemo(() => {
     const unique = new Map();
@@ -229,6 +236,45 @@ export default function ResultsView({
     );
     return [...unique.values()];
   }, [bestMatches, cheapest]);
+
+  // A new search starts over.
+  const [refsQuery, setRefsQuery] = useState(query);
+  if (refsQuery !== query) {
+    setRefsQuery(query);
+    setRefs([]);
+    setLikeError("");
+  }
+
+  async function pick(product, kind) {
+    if (likeBusy) return;
+    // Tapping "More like this" again takes the pick back.
+    if (kind === "like" && refs.some((ref) => ref.imageUrl === product.image_url && ref.kind === "like")) {
+      setRefs((current) => current.filter((ref) => ref.imageUrl !== product.image_url));
+      return;
+    }
+    setLikeBusy(true);
+    setLikeError("");
+    try {
+      const scores = await fetchSimilarity(
+        product.image_url,
+        allProducts.map((item) => item.image_url)
+      );
+      setRefs((current) => [
+        ...current.filter((ref) => ref.imageUrl !== product.image_url),
+        { imageUrl: product.image_url, name: product.name, kind, scores },
+      ]);
+    } catch (error) {
+      setLikeError(error.message);
+    } finally {
+      setLikeBusy(false);
+    }
+  }
+
+  const similarFor = (product) => ({
+    state: refs.find((ref) => ref.imageUrl === product.image_url)?.kind === "like" ? "like" : null,
+    onLike: () => pick(product, "like"),
+    onNot: () => pick(product, "not"),
+  });
 
   const stores = useMemo(
     () =>
@@ -261,8 +307,14 @@ export default function ResultsView({
   const deals = useMemo(() => computeDeals(allProducts), [allProducts]);
   const filteredDupes = useMemo(() => applyFilters(dupes, filters, suitsYou), [dupes, filters, suitsYou]);
 
-  const filteredBest = useMemo(() => applyFilters(bestMatches, filters, suitsYou), [bestMatches, filters, suitsYou]);
-  const filteredCheapest = useMemo(() => applyFilters(cheapest, filters, suitsYou), [cheapest, filters, suitsYou]);
+  const filteredBest = useMemo(
+    () => reorderByRefs(applyFilters(bestMatches, filters, suitsYou), refs),
+    [bestMatches, filters, suitsYou, refs]
+  );
+  const filteredCheapest = useMemo(
+    () => reorderByRefs(applyFilters(cheapest, filters, suitsYou), refs),
+    [cheapest, filters, suitsYou, refs]
+  );
   const shownCount = new Set(
     [...filteredBest, ...filteredCheapest].map(getProductId)
   ).size;
@@ -338,6 +390,30 @@ export default function ResultsView({
         </div>
       )}
 
+      {(refs.length > 0 || likeBusy || likeError) && (
+        <div className="updating-banner like-banner" role="status">
+          {likeBusy ? <span className="spinner" /> : <Icon name="scan" size={16} />}
+          <span>
+            {likeError ||
+              (likeBusy
+                ? "Comparing the photos…"
+                : `Re-ordered by your picks (${refs.filter((r) => r.kind === "like").length} liked, ${refs.filter((r) => r.kind === "not").length} hidden).`)}
+          </span>
+          {refs.length > 0 && (
+            <button
+              type="button"
+              className="button button-secondary button-sm"
+              onClick={() => {
+                setRefs([]);
+                setLikeError("");
+              }}
+            >
+              Back to original order
+            </button>
+          )}
+        </div>
+      )}
+
       <Toolbar
         filters={filters}
         onChange={onFiltersChange}
@@ -370,6 +446,7 @@ export default function ResultsView({
                 : "Listings that look most like your photo."
             }
             products={filteredBest}
+            similarFor={similarFor}
             savedIds={savedIds}
             onToggleSave={onToggleSave}
             onTryOn={onTryOn}
@@ -396,6 +473,7 @@ export default function ResultsView({
                 : "The cheapest listings we found, in-stock items first."
             }
             products={filteredCheapest}
+            similarFor={similarFor}
             savedIds={savedIds}
             onToggleSave={onToggleSave}
             onTryOn={onTryOn}

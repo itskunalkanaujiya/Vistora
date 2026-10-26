@@ -10338,3 +10338,32 @@ body {
     grid-template-columns: none;
   }
 }
+
+/* ---------- More like this / Not this ---------- */
+
+.card-similar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  gap: 6px 10px;
+}
+
+.card-similar .card-look {
+  margin-top: 0;
+  padding: 0;
+  font-size: 12.5px;
+}
+
+.card-similar .card-look:last-child {
+  color: var(--text-2);
+}
+
+.card-similar .card-look.is-active {
+  text-decoration: underline;
+}
+
+.like-banner button {
+  margin-left: auto;
+}

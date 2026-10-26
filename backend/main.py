@@ -20,7 +20,10 @@ from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel
 
 from image_shopping_service import (
+    MAX_LIKE_CANDIDATES,
     clip_state,
+    similarity_to_reference,
+    load_clip_model,
     identify_product,
     search_products_by_image as search_online_products,
 )
@@ -324,6 +327,43 @@ def fetch_serper_usage():
     }
 
 
+# "More like this" costs no search credit but downloads images, so it has its own limit.
+_like_log = {}
+LIKE_LIMIT = int(os.getenv("LIKE_LIMIT", "30"))
+LIKE_WINDOW_SECONDS = 600
+
+
+class SimilarRequest(BaseModel):
+    reference: str
+    images: list[str]
+
+
+@app.post("/api/v1/products/similar")
+async def products_similar(request: Request, body: SimilarRequest):
+    """
+    How much each listing photo looks like the reference listing's photo, so the
+    page can re-order the results around the one the visitor picked. Free: no
+    search provider is called.
+    """
+    if not body.images or len(body.images) > MAX_LIKE_CANDIDATES:
+        raise HTTPException(status_code=400, detail="Send between 1 and 40 listing photos.")
+    enforce_limit(request, _like_log, LIKE_LIMIT, LIKE_WINDOW_SECONDS, "re-orderings")
+
+    scores = await run_in_threadpool(similarity_to_reference, body.reference, body.images)
+    return {"scores": scores}
+
+
+@app.get("/api/v1/ping")
+async def ping():
+    """
+    Free warm-up: wakes this instance and loads the image model, so the next
+    search is not a cold start. The site calls it when a page opens; an uptime
+    monitor can call it every few minutes to keep one instance warm.
+    """
+    ready = await run_in_threadpool(lambda: load_clip_model()[0] is not None)
+    return {"ok": True, "clip": ready}
+
+
 @app.get("/api/v1/usage")
 async def search_usage():
     """How many SerpApi searches are left this month (photo and text search)."""
@@ -405,6 +445,7 @@ async def usage_status():
     result = with_cache_health(credit_status(data), await run_in_threadpool(shared_cache.health))
     result["fast_photo"] = {"on": fast_photo.enabled()}
     result["clip"] = await run_in_threadpool(clip_state)
+    result["cache_stats"] = await run_in_threadpool(shared_cache.stats)
     if result["status"] != "ok":
         print(f"SEARCH CREDITS {result['status'].upper()}: {'; '.join(result['problems'])}")
         return JSONResponse(status_code=503, content=result)
@@ -488,11 +529,13 @@ def get_cached_search(key):
             stored_at, result = entry
             if time.monotonic() - stored_at <= CACHE_TTL_SECONDS:
                 _search_cache.move_to_end(key)
+                shared_cache.record("memory_hit")
                 return result
             del _search_cache[key]
 
     # Not in this instance's memory: another instance may have searched it.
     result = shared_cache.get(key) if shared_cache.enabled() else None
+    shared_cache.record("shared_hit" if result is not None else "miss")
     if result is not None:
         store_cached_search(
             key, result, share=False, age_seconds=CACHE_TTL_SECONDS - SHARED_HIT_MEMORY_SECONDS

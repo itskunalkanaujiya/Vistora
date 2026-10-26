@@ -102,13 +102,13 @@ def search(monkeypatch, tmp_path):
 
     monkeypatch.setattr(s, "VISUAL_RERANK", True)
 
-    def run(candidates, scores, query):
+    def run(candidates, scores, query, photo_colour=(128, 128, 128)):
         monkeypatch.setattr(s, "run_google_lens", lambda path, query=None: [dict(c) for c in candidates])
         monkeypatch.setattr(s, "download_and_score", lambda path, items, on_downloaded=None: ([None] * len(items), scores))
         monkeypatch.setattr(s, "start_page_details", lambda items, deadline=None: None)
         monkeypatch.setattr(s, "finish_page_details", lambda job: None)
         photo = tmp_path / "photo.jpg"
-        Image.new("RGB", (50, 50)).save(photo)
+        Image.new("RGB", (50, 50), photo_colour).save(photo)
         events = []
         result = s.search_products_by_image(photo, on_event=lambda kind, data: events.append((kind, data)), query=query)
         return result, events
@@ -155,3 +155,18 @@ def test_visual_scoring_is_skipped_by_default(search, monkeypatch):
     monkeypatch.setattr(s, "download_and_score", lambda *a, **k: called.append(1) or ([], {}))
     result, _ = search([listing("Casio F-91W Digital Watch", slug="a")], {}, "casio f-91w digital watch")
     assert not called and result["dupes"] == []
+
+
+def test_a_listing_naming_only_other_colours_goes_below_matching_ones(search):
+    # The photo is solid orange.
+    from PIL import Image
+
+    candidates = [
+        listing("Kids Green Frock", slug="green"),
+        listing("Kids Orange Frock", slug="orange"),
+    ]
+    scores = {0: 0.95, 1: 0.5}  # the green one looks closer to the model
+
+    result, _ = search(candidates, scores, "kids frock", photo_colour=(230, 110, 20))
+
+    assert [p["name"] for p in result["best_matches"]] == ["Kids Orange Frock", "Kids Green Frock"]

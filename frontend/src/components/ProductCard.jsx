@@ -62,7 +62,8 @@ function useAccessoryReady(product, enabled) {
 const DEAL_ICONS = { high: "alert", fake: "alert", real: "check" };
 
 // pick: { picked, onPick } on a Budget look planner piece's listings.
-export default function ProductCard({ product, isSaved, onToggleSave, onTryOn, onCompleteLook, highlight, deal, pick }) {
+// similar: { state: "like" | null, onLike, onNot } to re-order the results around this listing.
+export default function ProductCard({ product, isSaved, onToggleSave, onTryOn, onCompleteLook, highlight, deal, pick, similar }) {
   const [imageFailed, setImageFailed] = useState(!product.image_url);
   const accessoryReady = useAccessoryReady(product, Boolean(onTryOn));
   // A short burst on the heart or a ring of the bell when tapped on.
@@ -274,6 +275,30 @@ export default function ProductCard({ product, isSaved, onToggleSave, onTryOn, o
             <Icon name="check" size={14} />
             Use in my look
           </button>
+        )}
+
+        {similar && product.image_url && (
+          <div className="card-similar">
+            <button
+              type="button"
+              className={`card-look ${similar.state === "like" ? "is-active" : ""}`}
+              onClick={similar.onLike}
+              aria-pressed={similar.state === "like"}
+              title="Show the listings that look most like this one first"
+            >
+              <Icon name="scan" size={13} />
+              More like this
+            </button>
+            <button
+              type="button"
+              className="card-look"
+              onClick={similar.onNot}
+              title="Hide this one and push look-alikes down"
+            >
+              <Icon name="x" size={13} />
+              Not this
+            </button>
+          </div>
         )}
 
         {(compare || (onCompleteLook && product.name)) && (

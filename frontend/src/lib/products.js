@@ -162,3 +162,9 @@ export function applyFilters(products, filters, suitsYou) {
       return filtered;
   }
 }
+
+// Wakes the server (and loads its image model) while the visitor is still
+// choosing a photo, so their first search is not a cold start. Costs no search credit.
+export function warmUpServer() {
+  fetch(`${API_URL}/api/v1/ping`).catch(() => {});
+}
