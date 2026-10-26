@@ -18,25 +18,19 @@ from http_session import reliable_session
 from search_credits import SearchLimitError, known_empty
 from tryon_service import accessory_category, garment_category
 
-# On Vercel only /tmp is writable, so the downloaded model is cached there.
-# This must be set before transformers is imported.
-if os.getenv("VERCEL") and not os.getenv("HF_HOME"):
-    os.environ["HF_HOME"] = "/tmp/huggingface"
-
-# CLIP (torch + transformers) is optional and off by default: loading it costs
-# 15-25 s on a cold serverless instance and it did not improve ranking. Set
-# ENABLE_CLIP_RANKING=true and install torch and transformers to use it.
-ENABLE_CLIP_RANKING = os.getenv("ENABLE_CLIP_RANKING", "false").lower() in {
+# CLIP ViT-B/32 image encoder run with ONNX Runtime (no PyTorch): it loads in a
+# second or two, so a search never waits on a heavy start-up. Set
+# ENABLE_CLIP_RANKING=false to rank by title and Google Lens order alone.
+ENABLE_CLIP_RANKING = os.getenv("ENABLE_CLIP_RANKING", "true").lower() in {
     "true",
     "1",
     "yes",
     "on",
 }
 
-torch = None
 Image = None
-CLIPImageProcessor = None
-CLIPVisionModelWithProjection = None
+np = None
+onnxruntime = None
 CLIP_AVAILABLE = False
 
 try:
@@ -44,14 +38,13 @@ try:
 except ImportError:
     pass
 
-if ENABLE_CLIP_RANKING:
-    try:
-        import torch
-        from transformers import CLIPImageProcessor, CLIPVisionModelWithProjection
+try:
+    import numpy as np
+    import onnxruntime
 
-        CLIP_AVAILABLE = True
-    except ImportError:
-        pass
+    CLIP_AVAILABLE = Image is not None
+except ImportError:
+    pass
 
 
 # --------------------------------------------------
@@ -63,16 +56,28 @@ load_dotenv(BASE_DIR / ".env")
 
 SERPAPI_URL = "https://serpapi.com/search.json"
 SERPAPI_IMAGE_URL = "https://serpapi.com/image"
-# CLIP ViT-B/32 image encoder only, stored in half precision (176 MB instead
-# of 605 MB for the full model) so it fits serverless /tmp limits. Scores
-# match openai/clip-vit-base-patch32 to within ~0.0003.
-CLIP_MODEL_NAME = os.getenv(
-    "CLIP_MODEL_NAME", "kunalkanaujiya/clip-vit-base-patch32-vision"
-)
+# The CLIP ViT-B/32 image encoder, exported to ONNX with its weights stored in
+# half precision (167 MB, split in two files to stay under GitHub's 100 MB limit)
+# and computed in float32. Scores match the PyTorch model to 1e-6. Quantising to
+# int8 shrank it to 84 MB but changed which listing looked nearest, so it is not used.
+CLIP_MODEL_PARTS = [
+    BASE_DIR / "models" / "clip_vision.onnx.part1",
+    BASE_DIR / "models" / "clip_vision.onnx.part2",
+]
+CLIP_INPUT_SIZE = 224
+CLIP_MEAN = (0.48145466, 0.4578275, 0.40821073)
+CLIP_STD = (0.26862954, 0.26130258, 0.27577711)
 
-# Photo searches skip thumbnail download and CLIP scoring unless this is on.
-# Without it there are no "looks N% similar" labels and no cheaper look-alikes.
-VISUAL_RERANK = os.getenv("VISUAL_RERANK", "false").lower() in {"1", "true", "yes", "on"}
+# Width of a title-match tie (see the sort in search_products_by_image). On 48 saved
+# photos 0.5 ranked as well as exact scores did, and let Lens order the generic titles.
+TITLE_BUCKET = 0.5
+# Cheapest alternatives are ordered by price, so a barely related listing must not slip in.
+ALTERNATIVE_MIN_RELEVANCE = 0.2
+MIN_ALTERNATIVES = 3
+
+# Turn off to skip thumbnail download and CLIP scoring in photo searches (saves
+# ~2 s, but there are then no "looks N% similar" labels or cheaper look-alikes).
+VISUAL_RERANK = os.getenv("VISUAL_RERANK", "true").lower() in {"1", "true", "yes", "on"}
 
 MAX_IMAGE_BYTES = 512000
 MAX_THUMBNAIL_BYTES = 3 * 1024 * 1024
@@ -616,36 +621,37 @@ def derive_product_query(candidates):
 # --------------------------------------------------
 
 
-_clip_loader = None
-
-
-def clip_for_request():
+def preprocess_images(images):
     """
-    The CLIP model if it is already loaded, else (None, None).
-
-    A new serverless instance needs 15-25 s to load the model (download plus
-    PyTorch start-up). A search must not wait for that: it ranks by title
-    match alone this once, while the model loads in the background for the
-    next search.
+    CLIP's input: shortest side to 224 (bicubic), centre crop, normalise.
+    Returns a float32 array of shape (n, 3, 224, 224).
     """
-    global _clip_loader
+    size = CLIP_INPUT_SIZE
+    batch = []
+    for image in images:
+        image = image.convert("RGB")
+        width, height = image.size
+        # Same rounding as the reference processor: the long side is truncated.
+        if width <= height:
+            new_size = (size, int(size * height / width))
+        else:
+            new_size = (int(size * width / height), size)
+        image = image.resize(new_size, Image.BICUBIC)
+        left, top = (image.width - size) // 2, (image.height - size) // 2
+        image = image.crop((left, top, left + size, top + size))
+        batch.append(np.asarray(image, dtype=np.float32) / 255.0)
 
-    if _clip_model is not None and _clip_processor is not None:
-        return _clip_model, _clip_processor
-    if not ENABLE_CLIP_RANKING or not CLIP_AVAILABLE:
-        return None, None
-    if _clip_loader is None or not _clip_loader.is_alive():
-        _clip_loader = threading.Thread(target=load_clip_model, daemon=True)
-        _clip_loader.start()
-    return None, None
+    pixels = (np.stack(batch) - np.array(CLIP_MEAN, dtype=np.float32)) / np.array(
+        CLIP_STD, dtype=np.float32
+    )
+    return pixels.transpose(0, 3, 1, 2).astype(np.float32)
 
 
 def load_clip_model():
+    """The ONNX session and the preprocessing function, loaded once; (None, None) if unavailable."""
     global _clip_model, _clip_processor
 
     if not ENABLE_CLIP_RANKING or not CLIP_AVAILABLE:
-        if not CLIP_AVAILABLE:
-            print("CLIP unavailable. Using text-based ranking.")
         return None, None
 
     with _clip_lock:
@@ -653,32 +659,19 @@ def load_clip_model():
             return _clip_model, _clip_processor
 
         try:
-            print(f"Loading visual similarity model: {CLIP_MODEL_NAME}")
-
-            # Use the cached copy without contacting the Hub; download
-            # only if the model has never been fetched.
-            try:
-                _clip_processor = CLIPImageProcessor.from_pretrained(
-                    CLIP_MODEL_NAME, local_files_only=True
-                )
-                _clip_model = CLIPVisionModelWithProjection.from_pretrained(
-                    CLIP_MODEL_NAME, local_files_only=True
-                )
-            except OSError:
-                _clip_processor = CLIPImageProcessor.from_pretrained(CLIP_MODEL_NAME)
-                _clip_model = CLIPVisionModelWithProjection.from_pretrained(
-                    CLIP_MODEL_NAME
-                )
-
-            # Weights are stored in half precision; compute in float32 on CPU.
-            _clip_model = _clip_model.float().eval()
-            print("CLIP model loaded successfully.")
+            started = time.monotonic()
+            weights = b"".join(part.read_bytes() for part in CLIP_MODEL_PARTS)
+            _clip_model = onnxruntime.InferenceSession(
+                weights, providers=["CPUExecutionProvider"]
+            )
+            _clip_processor = preprocess_images
+            print(f"CLIP model loaded in {time.monotonic() - started:.1f}s.")
             return _clip_model, _clip_processor
 
         except Exception as exc:
             _clip_model = None
             _clip_processor = None
-            print(f"Could not load CLIP; using text ranking: {exc}")
+            print(f"Could not load CLIP; using title ranking: {exc}")
             return None, None
 
 
@@ -752,15 +745,10 @@ def download_thumbnails(candidates, deadline=THUMBNAIL_DEADLINE):
 
 
 def encode_images(model, processor, images):
-    """Unit-length CLIP features, one row per image."""
-    inputs = processor(images=images, return_tensors="pt")
-
-    with torch.no_grad():
-        # get_image_features returns an output object in newer
-        # transformers versions, so project the pooled output directly.
-        outputs = model.vision_model(pixel_values=inputs["pixel_values"])
-        features = model.visual_projection(outputs.pooler_output)
-        return features / features.norm(p=2, dim=-1, keepdim=True).clamp(min=1e-12)
+    """Unit-length CLIP features, one row per image (a numpy array)."""
+    features = model.run(None, {"pixel_values": processor(images)})[0]
+    norms = np.linalg.norm(features, axis=-1, keepdims=True)
+    return features / np.maximum(norms, 1e-12)
 
 
 # Thumbnails are scored in groups of this size as they arrive.
@@ -788,10 +776,10 @@ def download_and_score(image_path, candidates, deadline=THUMBNAIL_DEADLINE, on_d
     candidate index (empty when CLIP is unavailable). on_downloaded() is
     called once the downloads are over, before the last group is scored.
     """
-    model, processor = clip_for_request()
+    model, processor = load_clip_model()
     query_image = None
 
-    if model is not None and processor is not None and Image is not None and torch is not None:
+    if model is not None and processor is not None and Image is not None:
         try:
             query_image = open_query_image(image_path)
         except Exception as exc:
@@ -812,8 +800,7 @@ def download_and_score(image_path, candidates, deadline=THUMBNAIL_DEADLINE, on_d
         if not waiting or query_features is None:
             return
         features = encode_images(model, processor, [image for _, image in waiting])
-        with torch.no_grad():
-            similarities = torch.matmul(features, query_features).tolist()
+        similarities = (features @ query_features).tolist()
         for (index, _), score in zip(waiting, similarities):
             scores[index] = round(float(score), 4)
         waiting.clear()
@@ -873,8 +860,8 @@ def compute_visual_similarity_scores(image_path, candidates, thumbnails=None):
     if not candidates:
         return {}
 
-    model, processor = clip_for_request()
-    if model is None or processor is None or Image is None or torch is None:
+    model, processor = load_clip_model()
+    if model is None or processor is None or Image is None:
         return {}
 
     try:
@@ -905,8 +892,7 @@ def compute_visual_similarity_scores(image_path, candidates, thumbnails=None):
     try:
         features = encode_images(model, processor, images)
 
-        with torch.no_grad():
-            similarities = torch.matmul(features[1:], features[0])
+        similarities = features[1:] @ features[0]
 
         return {
             index: round(float(score), 4)
@@ -1600,6 +1586,13 @@ def select_sections(candidates, max_results, preview=False, query=""):
         and normalize_product_url(item.get("link")) not in best_urls
     ]
 
+    relevant = [
+        item for item in alternative_items
+        if item.get("_text_relevance_score", 1.0) >= ALTERNATIVE_MIN_RELEVANCE
+    ]
+    if len(relevant) >= MIN_ALTERNATIVES:
+        alternative_items = relevant
+
     alternative_items.sort(
         key=lambda item: (
             item["_offer"]["availability"] == OUT_OF_STOCK,
@@ -2012,9 +2005,13 @@ def search_products_by_image(
     # exact model; in a test on 33 photos, the exact product went from first for
     # 61% of photos to 94%. Visual similarity still drives the "cheaper
     # lookalikes" and the "looks N% similar" labels.
+    # Titles are coarse (generic words like "kids frock" match a green frock as
+    # well as the orange one in the photo), so listings within TITLE_BUCKET of
+    # each other count as tied and keep Google Lens's own order, which is its
+    # visual match. A stable sort keeps that order among ties.
     candidates.sort(
         key=lambda item: (
-            round(item["_text_relevance_score"], 2),
+            round(item["_text_relevance_score"] / TITLE_BUCKET),
             item["_visual_similarity_score"] or 0,
         ),
         reverse=True,

@@ -28,13 +28,13 @@ full project, API and local setup.
 | `ALLOWED_ORIGIN_REGEX` | Optional pattern for preview URLs, e.g. `https://(snapbuy-ai\|vistora)(-[a-z0-9-]+)?\.vercel\.app` |
 | `TRUST_PROXY_HEADERS` | `true` behind a hosting proxy, so search limits are per visitor |
 | `SEARCH_LIMIT` / `SEARCH_WINDOW_SECONDS` | Optional. Defaults: 10 searches per 600 s per visitor |
-| `CLIP_MODEL_NAME` | Optional. Defaults to `kunalkanaujiya/clip-vit-base-patch32-vision` |
-| `ENABLE_CLIP_RANKING` | Optional. Off by default; `true` loads CLIP (needs torch and transformers installed) |
-| `VISUAL_RERANK` | Optional. With CLIP on, `true` also scores photo-search thumbnails (look-alikes, similarity labels) |
+| `ENABLE_CLIP_RANKING` | Optional. On by default; `false` ranks by title and Google Lens order only |
+| `VISUAL_RERANK` | Optional. On by default; `false` skips thumbnail scoring in photo search (no look-alikes or similarity labels, ~2 s faster) |
 
 ## CLIP model
 
-The service uses only CLIP ViT-B/32's image encoder, published at
-[kunalkanaujiya/clip-vit-base-patch32-vision](https://huggingface.co/kunalkanaujiya/clip-vit-base-patch32-vision)
-in half precision (176 MB instead of 605 MB), so it fits a serverless
-function's `/tmp`. Scores match the original model within ~0.0003.
+The service uses only CLIP ViT-B/32's image encoder, exported to ONNX and run
+with ONNX Runtime (no PyTorch), so it loads in about a second. The weights are
+in `models/` as two half-precision files (167 MB in total, split to stay under
+GitHub's 100 MB file limit) and are computed in float32. Scores match the
+original PyTorch model to 1e-6.

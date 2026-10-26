@@ -9,5 +9,5 @@ beautifulsoup4==4.15.0
 python-dotenv==1.2.4
 gradio_client==2.7.2
 
-# Optional visual re-ranking (CLIP) is off by default. To use it, install
-# torch==2.14.1 and transformers==5.19.0 and set ENABLE_CLIP_RANKING=true.
+# Visual re-ranking: the CLIP image encoder (models/) runs on ONNX Runtime, no PyTorch.
+onnxruntime==1.31.0

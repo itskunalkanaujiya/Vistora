@@ -186,11 +186,10 @@ def test_foreign_listings_dont_crowd_out_indian_ones(monkeypatch, tmp_path):
 
 
 def test_download_and_score_scores_thumbnails_in_groups(monkeypatch):
-    torch = pytest.importorskip("torch")
+    import numpy as np
     from PIL import Image
 
-    monkeypatch.setattr(s, "torch", torch)
-    monkeypatch.setattr(s, "clip_for_request", lambda: (object(), object()))
+    monkeypatch.setattr(s, "load_clip_model", lambda: (object(), object()))
     monkeypatch.setattr(s, "download_thumbnail", lambda url: Image.new("RGB", (4, 4)) if url else None)
 
     batches = []
@@ -200,8 +199,8 @@ def test_download_and_score_scores_thumbnails_in_groups(monkeypatch):
         # The photo is encoded first: its row is [1, 0]. Each thumbnail is a
         # unit vector at an angle to it, so its similarity is 0.6.
         if len(batches) == 1:
-            return torch.tensor([[1.0, 0.0]])
-        return torch.tensor([[0.6, 0.8]] * len(images))
+            return np.array([[1.0, 0.0]])
+        return np.array([[0.6, 0.8]] * len(images))
 
     monkeypatch.setattr(s, "encode_images", fake_encode)
 
@@ -221,7 +220,7 @@ def test_download_and_score_scores_thumbnails_in_groups(monkeypatch):
 
 
 def test_download_and_score_without_clip_just_downloads(monkeypatch):
-    monkeypatch.setattr(s, "clip_for_request", lambda: (None, None))
+    monkeypatch.setattr(s, "load_clip_model", lambda: (None, None))
     monkeypatch.setattr(s, "download_thumbnails", lambda items, deadline=None: ["img"] * len(items))
     called = []
 
@@ -271,17 +270,24 @@ def test_select_sections_reports_dupes_with_savings():
     assert s.select_sections(kept, max_results=10, preview=True)["dupes"] == []
 
 
-def test_search_does_not_wait_for_clip_to_load(monkeypatch):
-    import image_shopping_service as s
+def test_preprocessing_matches_the_clip_reference_shape_and_scale():
+    from PIL import Image
 
-    started = []
-    monkeypatch.setattr(s, "_clip_model", None)
-    monkeypatch.setattr(s, "_clip_processor", None)
-    monkeypatch.setattr(s, "_clip_loader", None)
-    monkeypatch.setattr(s, "ENABLE_CLIP_RANKING", True)
-    monkeypatch.setattr(s, "CLIP_AVAILABLE", True)
-    monkeypatch.setattr(s, "load_clip_model", lambda: started.append(1) or (None, None))
+    pixels = s.preprocess_images([Image.new("RGB", (500, 300), (255, 255, 255)), Image.new("RGB", (40, 90))])
 
-    assert s.clip_for_request() == (None, None)
-    s._clip_loader.join(2)
-    assert started == [1]
+    assert pixels.shape == (2, 3, 224, 224) and pixels.dtype.name == "float32"
+    # white maps to (1 - mean) / std on each channel
+    assert abs(float(pixels[0, 0, 0, 0]) - (1 - s.CLIP_MEAN[0]) / s.CLIP_STD[0]) < 1e-5
+
+
+def test_the_bundled_model_loads_and_scores_an_image_against_itself():
+    from PIL import Image
+
+    model, processor = s.load_clip_model()
+    if model is None:
+        pytest.skip("onnxruntime is not installed")
+    features = s.encode_images(model, processor, [Image.new("RGB", (64, 64), (200, 30, 30))] * 2)
+
+    assert features.shape == (2, 512)
+    assert abs(float(features[0] @ features[1]) - 1.0) < 1e-4
+
